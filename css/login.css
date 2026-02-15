@@ -1,0 +1,511 @@
+/* ===========================
+   GoBlox - Login / Register
+   =========================== */
+
+/* --- Login Page Layout --- */
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- Animated Background --- */
+.login-page::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(108, 99, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(233, 69, 96, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(108, 99, 255, 0.08) 0%, transparent 50%);
+    animation: bgFloat 15s ease-in-out infinite;
+    z-index: 0;
+}
+
+@keyframes bgFloat {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(2%, -2%) rotate(1deg); }
+    66% { transform: translate(-1%, 1%) rotate(-0.5deg); }
+}
+
+/* --- Floating Particles --- */
+.login-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.login-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    opacity: 0.2;
+    animation: particleFloat linear infinite;
+}
+
+.login-particle:nth-child(1) {
+    left: 10%; width: 4px; height: 4px; animation-duration: 18s; animation-delay: 0s;
+    background: var(--accent-primary);
+}
+.login-particle:nth-child(2) {
+    left: 25%; width: 6px; height: 6px; animation-duration: 22s; animation-delay: -3s;
+    background: var(--accent-secondary);
+}
+.login-particle:nth-child(3) {
+    left: 40%; width: 3px; height: 3px; animation-duration: 16s; animation-delay: -6s;
+    background: var(--accent-primary);
+}
+.login-particle:nth-child(4) {
+    left: 55%; width: 8px; height: 8px; animation-duration: 25s; animation-delay: -2s;
+    background: var(--accent-secondary); opacity: 0.12;
+}
+.login-particle:nth-child(5) {
+    left: 70%; width: 5px; height: 5px; animation-duration: 20s; animation-delay: -8s;
+    background: var(--accent-primary);
+}
+.login-particle:nth-child(6) {
+    left: 85%; width: 4px; height: 4px; animation-duration: 19s; animation-delay: -5s;
+    background: var(--accent-secondary);
+}
+.login-particle:nth-child(7) {
+    left: 50%; width: 7px; height: 7px; animation-duration: 23s; animation-delay: -10s;
+    background: var(--accent-primary); opacity: 0.15;
+}
+.login-particle:nth-child(8) {
+    left: 15%; width: 5px; height: 5px; animation-duration: 21s; animation-delay: -12s;
+    background: var(--accent-secondary);
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.25;
+    }
+    90% {
+        opacity: 0.25;
+    }
+    100% {
+        transform: translateY(-100px) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* --- Glass Card --- */
+.login-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    background: rgba(26, 26, 46, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2.5rem 2rem 2rem;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 -1px 0 0 rgba(255, 255, 255, 0.05) inset;
+    animation: cardAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardAppear {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* --- Logo --- */
+.login-logo {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    user-select: none;
+}
+
+.login-logo-text {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(
+        135deg,
+        #6c63ff 0%,
+        #a78bfa 25%,
+        #e94560 50%,
+        #a78bfa 75%,
+        #6c63ff 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s linear infinite;
+    line-height: 1.1;
+}
+
+@keyframes shimmer {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
+
+.login-logo-icon {
+    display: inline-block;
+    font-size: 2.4rem;
+    margin-bottom: 0.25rem;
+    animation: logoFloat 3s ease-in-out infinite;
+    line-height: 1;
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+/* --- Subtitle --- */
+.login-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+
+.login-subtitle span {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+/* --- Tabs --- */
+.login-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.75rem;
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.login-tab {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all var(--transition-normal);
+    position: relative;
+    z-index: 1;
+}
+
+.login-tab:hover {
+    color: var(--text-primary);
+}
+
+.login-tab.active {
+    color: var(--text-primary);
+    background: var(--accent-gradient);
+    box-shadow: 0 2px 12px rgba(108, 99, 255, 0.3);
+}
+
+/* --- Form --- */
+.login-form-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: formFadeIn 0.35s ease forwards;
+}
+
+.login-form.hidden {
+    display: none;
+}
+
+@keyframes formFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* --- Input Group --- */
+.login-input-group {
+    position: relative;
+}
+
+.login-input-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.login-input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.75rem;
+    background: rgba(15, 15, 26, 0.6);
+    color: var(--text-primary);
+    border: 2px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.login-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+    background: rgba(15, 15, 26, 0.8);
+}
+
+.login-input::placeholder {
+    color: rgba(160, 160, 176, 0.5);
+}
+
+/* Date input styling */
+.login-input[type="date"] {
+    color-scheme: dark;
+}
+
+.login-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+}
+
+/* --- Input Icon --- */
+.login-input-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: calc(50% + 0.5rem);
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    opacity: 0.4;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+    line-height: 1;
+}
+
+.login-input:focus ~ .login-input-icon,
+.login-input-group:focus-within .login-input-icon {
+    opacity: 0.8;
+}
+
+/* --- Password Toggle --- */
+.login-pw-toggle {
+    position: absolute;
+    right: 0.75rem;
+    top: calc(50% + 0.5rem);
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+    line-height: 1;
+}
+
+.login-pw-toggle:hover {
+    opacity: 0.9;
+}
+
+/* --- Submit Button --- */
+.login-submit {
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+    background: var(--accent-gradient);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: 0 4px 16px rgba(108, 99, 255, 0.3);
+    margin-top: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.02em;
+}
+
+.login-submit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.15),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.login-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(108, 99, 255, 0.45);
+    filter: brightness(1.08);
+}
+
+.login-submit:hover::before {
+    left: 100%;
+}
+
+.login-submit:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3);
+}
+
+.login-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* --- Error Message --- */
+.login-error {
+    background: rgba(233, 69, 96, 0.12);
+    border: 1px solid rgba(233, 69, 96, 0.25);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    color: #ff6b81;
+    font-size: 0.88rem;
+    font-weight: 500;
+    animation: errorAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.login-error.hidden {
+    display: none;
+}
+
+@keyframes errorAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+    60% {
+        transform: translateY(2px) scale(1);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* --- Shake Animation for Error State --- */
+.login-shake {
+    animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+
+/* --- Footer / Info --- */
+.login-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.login-footer span {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+/* --- Loading Spinner in Button --- */
+.login-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Success Flash --- */
+.login-success-flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(108, 99, 255, 0.15);
+    z-index: 1000;
+    pointer-events: none;
+    animation: successFlash 0.6s ease forwards;
+}
+
+@keyframes successFlash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* --- Responsive --- */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 2rem 1.25rem 1.5rem;
+        border-radius: 16px;
+        margin: 0 0.5rem;
+    }
+
+    .login-logo-text {
+        font-size: 2.4rem;
+    }
+
+    .login-input {
+        padding: 0.7rem 0.9rem 0.7rem 2.5rem;
+    }
+}
