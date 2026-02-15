@@ -1,8 +1,10 @@
 import { BaseGame } from '../base-game.js';
+import { BaseGame3D, mulberry32 as mulberry32_3d } from '../base-game-3d.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
 import { drawCharacter } from '../character.js';
+import * as THREE from 'three';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -17,14 +19,14 @@ function mulberry32(seed) {
 
 // ── Themes ──────────────────────────────────────────────────────────────
 const themes = [
-    { name: 'Asphalt',   primary: '#e74c3c', secondary: '#ecf0f1', bg: '#2c3e50', road: '#34495e', lane: '#f1c40f', obstacle: '#e67e22' },
-    { name: 'Neon',      primary: '#00ff87', secondary: '#60efff', bg: '#0a0a2e', road: '#161650', lane: '#ff006e', obstacle: '#ffff00' },
-    { name: 'Desert',    primary: '#f39c12', secondary: '#ffeaa7', bg: '#d4a76a', road: '#8b7355', lane: '#ffffff', obstacle: '#c0392b' },
-    { name: 'Night',     primary: '#74b9ff', secondary: '#dfe6e9', bg: '#0c1021', road: '#1a1a3e', lane: '#ffffff', obstacle: '#ff6b6b' },
-    { name: 'Retro',     primary: '#ff6b6b', secondary: '#ffeaa7', bg: '#2d3436', road: '#636e72', lane: '#ffeaa7', obstacle: '#6c5ce7' },
-    { name: 'Arctic',    primary: '#00cec9', secondary: '#dfe6e9', bg: '#c7ecee', road: '#b2bec3', lane: '#2d3436', obstacle: '#d63031' },
-    { name: 'Toxic',     primary: '#00b894', secondary: '#55efc4', bg: '#0a3d00', road: '#1a5a00', lane: '#fdcb6e', obstacle: '#e17055' },
-    { name: 'Sunset',    primary: '#e84393', secondary: '#fd79a8', bg: '#2d1b4e', road: '#4a2670', lane: '#ffeaa7', obstacle: '#fdcb6e' },
+    { name: 'Asphalt',   primary: '#e74c3c', secondary: '#ecf0f1', bg: '#2c3e50', road: '#34495e', lane: '#f1c40f', obstacle: '#e67e22', road3d: 0x34495e, car3d: 0xe74c3c, lane3d: 0xf1c40f, skyTop: 0x87ceeb, skyBottom: 0x2c3e50, fog: 0x667788, ground: 0x4a8f4a },
+    { name: 'Neon',      primary: '#00ff87', secondary: '#60efff', bg: '#0a0a2e', road: '#161650', lane: '#ff006e', obstacle: '#ffff00', road3d: 0x161650, car3d: 0x00ff87, lane3d: 0xff006e, skyTop: 0x0a0a2e, skyBottom: 0x161650, fog: 0x0a0a2e, ground: 0x0a0a1e },
+    { name: 'Desert',    primary: '#f39c12', secondary: '#ffeaa7', bg: '#d4a76a', road: '#8b7355', lane: '#ffffff', obstacle: '#c0392b', road3d: 0x8b7355, car3d: 0xf39c12, lane3d: 0xffffff, skyTop: 0xc9a44a, skyBottom: 0xd4a76a, fog: 0xc4a06a, ground: 0xb89a5a },
+    { name: 'Night',     primary: '#74b9ff', secondary: '#dfe6e9', bg: '#0c1021', road: '#1a1a3e', lane: '#ffffff', obstacle: '#ff6b6b', road3d: 0x1a1a3e, car3d: 0x74b9ff, lane3d: 0xffffff, skyTop: 0x0c1021, skyBottom: 0x1a1a3e, fog: 0x0c1021, ground: 0x0a1a0a },
+    { name: 'Retro',     primary: '#ff6b6b', secondary: '#ffeaa7', bg: '#2d3436', road: '#636e72', lane: '#ffeaa7', obstacle: '#6c5ce7', road3d: 0x636e72, car3d: 0xff6b6b, lane3d: 0xffeaa7, skyTop: 0x2d3436, skyBottom: 0x4d5456, fog: 0x3d4446, ground: 0x3d5436 },
+    { name: 'Arctic',    primary: '#00cec9', secondary: '#dfe6e9', bg: '#c7ecee', road: '#b2bec3', lane: '#2d3436', obstacle: '#d63031', road3d: 0xb2bec3, car3d: 0x00cec9, lane3d: 0x2d3436, skyTop: 0x87ceeb, skyBottom: 0xc7ecee, fog: 0xb7dcde, ground: 0xc8d8dc },
+    { name: 'Toxic',     primary: '#00b894', secondary: '#55efc4', bg: '#0a3d00', road: '#1a5a00', lane: '#fdcb6e', obstacle: '#e17055', road3d: 0x1a5a00, car3d: 0x00b894, lane3d: 0xfdcb6e, skyTop: 0x0a1500, skyBottom: 0x0a3d00, fog: 0x0a2d00, ground: 0x0a2a00 },
+    { name: 'Sunset',    primary: '#e84393', secondary: '#fd79a8', bg: '#2d1b4e', road: '#4a2670', lane: '#ffeaa7', obstacle: '#fdcb6e', road3d: 0x4a2670, car3d: 0xe84393, lane3d: 0xffeaa7, skyTop: 0xff6f61, skyBottom: 0x2d1b4e, fog: 0x4d3b6e, ground: 0x3d2b5e },
 ];
 
 // ── RacingGame ──────────────────────────────────────────────────────────
@@ -364,6 +366,391 @@ class RacingGame extends BaseGame {
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// 3D RacingGame — straight road with obstacles
+// ══════════════════════════════════════════════════════════════════════════
+class RacingGame3D extends BaseGame3D {
+    async init() {
+        const cfg = this.config;
+        this.theme = cfg.theme;
+        this.rng = mulberry32_3d(cfg.seed || 1);
+        this.laneCount = cfg.laneCount || 3;
+        this.obstacleFrequency = cfg.obstacleFrequency || 3;
+        this.baseSpeed = cfg.speed || 3;
+
+        // Road parameters
+        this.laneWidth = 3;
+        this.roadWidth = this.laneCount * this.laneWidth;
+        this.roadHalfW = this.roadWidth / 2;
+
+        // Player car state
+        this.playerLane = Math.floor(this.laneCount / 2);
+        this.carX = this.getLaneCenter3D(this.playerLane);
+        this.targetCarX = this.carX;
+        this.distance = 0;
+        this.scrollSpeed = 20 + this.baseSpeed * 6;
+        this.speedMultiplier = 1;
+
+        // Obstacles
+        this.obstacles3D = [];
+        this.spawnTimer = 0;
+        this.spawnInterval = 2.0 / this.obstacleFrequency;
+        this.obstacleFarZ = -200;
+        this.obstacleRemoveZ = 15;
+
+        // Disable default player model and physics
+        this.playerModel.visible = false;
+        this.gravity = 0;
+        this.moveSpeed = 0;
+
+        // Build the world
+        this.createSky(cfg.theme.skyTop || 0x87ceeb, cfg.theme.skyBottom || 0xe0f7fa, cfg.theme.fog || 0xccddee, 30, 180);
+
+        this.buildRoad();
+        this.buildBarriers();
+        this.buildPlayerCar();
+        this.buildEnvironment();
+
+        // HUD
+        this.createHUD();
+
+        // Remove pointer lock message — no mouse needed
+        if (this.lockMsg) this.lockMsg.style.display = 'none';
+    }
+
+    getLaneCenter3D(lane) {
+        return -this.roadHalfW + this.laneWidth * 0.5 + lane * this.laneWidth;
+    }
+
+    buildRoad() {
+        const t = this.theme;
+        // Long road plane
+        const roadGeo = new THREE.PlaneGeometry(this.roadWidth, 300);
+        const roadMat = new THREE.MeshStandardMaterial({ color: t.road3d || 0x34495e, roughness: 0.85, metalness: 0.0 });
+        this.roadMesh = new THREE.Mesh(roadGeo, roadMat);
+        this.roadMesh.rotation.x = -Math.PI / 2;
+        this.roadMesh.position.set(0, 0.01, -120);
+        this.roadMesh.receiveShadow = true;
+        this.scene.add(this.roadMesh);
+
+        // Ground on sides
+        const sideGeo = new THREE.PlaneGeometry(60, 300);
+        const sideMat = new THREE.MeshStandardMaterial({ color: t.ground || 0x4a8f4a, roughness: 0.9 });
+        const leftSide = new THREE.Mesh(sideGeo, sideMat);
+        leftSide.rotation.x = -Math.PI / 2;
+        leftSide.position.set(-this.roadHalfW - 30, 0, -120);
+        leftSide.receiveShadow = true;
+        this.scene.add(leftSide);
+
+        const rightSide = new THREE.Mesh(sideGeo, sideMat);
+        rightSide.rotation.x = -Math.PI / 2;
+        rightSide.position.set(this.roadHalfW + 30, 0, -120);
+        rightSide.receiveShadow = true;
+        this.scene.add(rightSide);
+
+        // Lane markings using InstancedMesh
+        const dashGeo = new THREE.BoxGeometry(0.1, 0.02, 1.5);
+        const dashMat = new THREE.MeshStandardMaterial({ color: t.lane3d || 0xf1c40f, emissive: t.lane3d || 0xf1c40f, emissiveIntensity: 0.3 });
+        const dashesPerLane = 40;
+        const dashSpacing = 6;
+        const totalDashes = (this.laneCount - 1) * dashesPerLane;
+        this.laneDashes = new THREE.InstancedMesh(dashGeo, dashMat, totalDashes);
+        this.laneDashes.receiveShadow = false;
+
+        const dummy = new THREE.Object3D();
+        let idx = 0;
+        for (let lane = 1; lane < this.laneCount; lane++) {
+            const lx = -this.roadHalfW + lane * this.laneWidth;
+            for (let d = 0; d < dashesPerLane; d++) {
+                dummy.position.set(lx, 0.02, -d * dashSpacing);
+                dummy.updateMatrix();
+                this.laneDashes.setMatrixAt(idx++, dummy.matrix);
+            }
+        }
+        this.laneDashes.instanceMatrix.needsUpdate = true;
+        this.dashSpacing = dashSpacing;
+        this.dashCount = dashesPerLane;
+        this.scene.add(this.laneDashes);
+    }
+
+    buildBarriers() {
+        const t = this.theme;
+        // Side barriers
+        const barrierGeo = new THREE.BoxGeometry(0.3, 0.6, 300);
+        const barrierMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5 });
+
+        const leftBarrier = new THREE.Mesh(barrierGeo, barrierMat);
+        leftBarrier.position.set(-this.roadHalfW - 0.3, 0.3, -120);
+        leftBarrier.castShadow = true;
+        this.scene.add(leftBarrier);
+
+        const rightBarrier = new THREE.Mesh(barrierGeo, barrierMat);
+        rightBarrier.position.set(this.roadHalfW + 0.3, 0.3, -120);
+        rightBarrier.castShadow = true;
+        this.scene.add(rightBarrier);
+    }
+
+    buildPlayerCar() {
+        const t = this.theme;
+        this.carGroup = new THREE.Group();
+
+        // Car body
+        const bodyGeo = new THREE.BoxGeometry(1.6, 0.6, 3.0);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: t.car3d || 0xe74c3c, roughness: 0.3, metalness: 0.4 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.5;
+        body.castShadow = true;
+        this.carGroup.add(body);
+
+        // Roof
+        const roofGeo = new THREE.BoxGeometry(1.2, 0.4, 1.4);
+        const roofMat = new THREE.MeshStandardMaterial({ color: t.car3d || 0xe74c3c, roughness: 0.3, metalness: 0.4 });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 0.95, -0.2);
+        roof.castShadow = true;
+        this.carGroup.add(roof);
+
+        // Windshield
+        const windGeo = new THREE.BoxGeometry(1.1, 0.35, 0.05);
+        const windMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, roughness: 0.1, metalness: 0.6, transparent: true, opacity: 0.6 });
+        const windshield = new THREE.Mesh(windGeo, windMat);
+        windshield.position.set(0, 0.9, -0.9);
+        windshield.rotation.x = 0.3;
+        this.carGroup.add(windshield);
+
+        // Wheels
+        const wheelGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 8);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+        const wheelPositions = [
+            [-0.8, 0.25, 0.9],
+            [0.8, 0.25, 0.9],
+            [-0.8, 0.25, -0.9],
+            [0.8, 0.25, -0.9],
+        ];
+        for (const [wx, wy, wz] of wheelPositions) {
+            const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel.position.set(wx, wy, wz);
+            wheel.rotation.z = Math.PI / 2;
+            this.carGroup.add(wheel);
+        }
+
+        // Headlights
+        const hlGeo = new THREE.SphereGeometry(0.1, 6, 6);
+        const hlMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, emissive: 0xffffcc, emissiveIntensity: 0.8 });
+        const hl1 = new THREE.Mesh(hlGeo, hlMat);
+        hl1.position.set(-0.55, 0.5, -1.5);
+        this.carGroup.add(hl1);
+        const hl2 = new THREE.Mesh(hlGeo, hlMat);
+        hl2.position.set(0.55, 0.5, -1.5);
+        this.carGroup.add(hl2);
+
+        this.carGroup.position.set(this.carX, 0, 0);
+        this.scene.add(this.carGroup);
+    }
+
+    buildEnvironment() {
+        // Trees and buildings along the roadside
+        const treeGeo = new THREE.ConeGeometry(1, 3, 6);
+        const treeMat = new THREE.MeshStandardMaterial({ color: 0x2d6a4f, roughness: 0.8 });
+        const trunkGeo = new THREE.CylinderGeometry(0.2, 0.25, 1.5, 6);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3d2e, roughness: 0.9 });
+        const buildingGeo = new THREE.BoxGeometry(3, 4, 3);
+        const buildingColors = [0x7f8c8d, 0x95a5a6, 0x6c7a89, 0x5d6d7e];
+
+        for (let i = 0; i < 30; i++) {
+            const side = i % 2 === 0 ? -1 : 1;
+            const offsetX = this.roadHalfW + 4 + this.rng() * 15;
+            const z = -i * 10 - 5;
+
+            if (this.rng() > 0.4) {
+                // Tree
+                const tree = new THREE.Group();
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.y = 0.75;
+                tree.add(trunk);
+                const foliage = new THREE.Mesh(treeGeo, treeMat);
+                foliage.position.y = 2.8;
+                foliage.castShadow = true;
+                tree.add(foliage);
+                tree.position.set(side * offsetX, 0, z);
+                this.scene.add(tree);
+            } else {
+                // Building
+                const bColor = buildingColors[Math.floor(this.rng() * buildingColors.length)];
+                const bMat = new THREE.MeshStandardMaterial({ color: bColor, roughness: 0.8 });
+                const bHeight = 3 + this.rng() * 6;
+                const building = new THREE.Mesh(new THREE.BoxGeometry(2 + this.rng() * 3, bHeight, 2 + this.rng() * 3), bMat);
+                building.position.set(side * offsetX, bHeight / 2, z);
+                building.castShadow = true;
+                this.scene.add(building);
+            }
+        }
+    }
+
+    randomColor3D() {
+        const colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0x1abc9c, 0xe67e22, 0xecf0f1];
+        return colors[Math.floor(this.rng() * colors.length)];
+    }
+
+    spawnObstacle3D() {
+        const lane = Math.floor(this.rng() * this.laneCount);
+        const type = this.rng() > 0.35 ? 'car' : 'barrier';
+        const speedFactor = type === 'car' ? 0.3 + this.rng() * 0.5 : 0;
+        const lx = this.getLaneCenter3D(lane);
+
+        let mesh;
+        if (type === 'car') {
+            const group = new THREE.Group();
+            const color = this.randomColor3D();
+            const oBodyGeo = new THREE.BoxGeometry(1.4, 0.55, 2.6);
+            const oBodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.3 });
+            const oBody = new THREE.Mesh(oBodyGeo, oBodyMat);
+            oBody.position.y = 0.47;
+            oBody.castShadow = true;
+            group.add(oBody);
+
+            const oRoofGeo = new THREE.BoxGeometry(1.1, 0.35, 1.2);
+            const oRoof = new THREE.Mesh(oRoofGeo, oBodyMat);
+            oRoof.position.set(0, 0.9, 0);
+            oRoof.castShadow = true;
+            group.add(oRoof);
+
+            group.position.set(lx, 0, this.obstacleFarZ);
+            this.scene.add(group);
+            mesh = group;
+        } else {
+            const barrGeo = new THREE.BoxGeometry(this.laneWidth * 0.8, 0.5, 0.8);
+            const barrMat = new THREE.MeshStandardMaterial({ color: 0xe67e22, roughness: 0.6 });
+            mesh = new THREE.Mesh(barrGeo, barrMat);
+            mesh.position.set(lx, 0.25, this.obstacleFarZ);
+            mesh.castShadow = true;
+            this.scene.add(mesh);
+        }
+
+        this.obstacles3D.push({
+            mesh,
+            type,
+            lane,
+            z: this.obstacleFarZ,
+            speedFactor,
+            halfW: type === 'car' ? 0.7 : this.laneWidth * 0.4,
+            halfD: type === 'car' ? 1.3 : 0.4,
+            height: type === 'car' ? 1.2 : 0.5,
+        });
+    }
+
+    onKeyDown(code) {
+        if (this.gameOver) return;
+        if (code === 'ArrowLeft' || code === 'KeyA') {
+            this.playerLane = Math.max(0, this.playerLane - 1);
+            this.targetCarX = this.getLaneCenter3D(this.playerLane);
+        } else if (code === 'ArrowRight' || code === 'KeyD') {
+            this.playerLane = Math.min(this.laneCount - 1, this.playerLane + 1);
+            this.targetCarX = this.getLaneCenter3D(this.playerLane);
+        }
+    }
+
+    updatePlayer(dt) {
+        // Override: no default player movement/physics
+        if (this.gameOver) return;
+
+        // Smooth lane change
+        const laneSpeed = 12;
+        const diff = this.targetCarX - this.carX;
+        if (Math.abs(diff) > 0.05) {
+            this.carX += diff * Math.min(1, laneSpeed * dt);
+        } else {
+            this.carX = this.targetCarX;
+        }
+
+        this.carGroup.position.x = this.carX;
+        // Slight tilt when turning
+        this.carGroup.rotation.z = -diff * 0.15;
+    }
+
+    updateCamera(dt) {
+        // Fixed chase camera behind and above the car
+        const targetPos = new THREE.Vector3(
+            this.carX * 0.3,
+            5,
+            9
+        );
+        const t = 1 - Math.exp(-6 * dt);
+        this.camera.position.lerp(targetPos, t);
+        this.camera.lookAt(this.carX * 0.5, 0.5, -10);
+
+        // Move sun to follow
+        if (this.sunLight) {
+            this.sunLight.position.set(this.carX + 30, 50, 30);
+            this.sunLight.target.position.set(this.carX, 0, -20);
+        }
+    }
+
+    update(dt) {
+        if (this.gameOver) return;
+
+        // Speed ramp
+        this.speedMultiplier = 1 + this.distance / 800;
+        const currentSpeed = this.scrollSpeed * this.speedMultiplier;
+
+        this.distance += currentSpeed * dt;
+        this.score = Math.floor(this.distance);
+        this.updateHUDScore(this.score);
+
+        // Animate lane dashes scrolling
+        const dummy = new THREE.Object3D();
+        const scrollOff = (this.distance * 0.5) % this.dashSpacing;
+        let idx = 0;
+        for (let lane = 1; lane < this.laneCount; lane++) {
+            const lx = -this.roadHalfW + lane * this.laneWidth;
+            for (let d = 0; d < this.dashCount; d++) {
+                dummy.position.set(lx, 0.02, -d * this.dashSpacing + scrollOff);
+                dummy.updateMatrix();
+                this.laneDashes.setMatrixAt(idx++, dummy.matrix);
+            }
+        }
+        this.laneDashes.instanceMatrix.needsUpdate = true;
+
+        // Spawn obstacles
+        this.spawnTimer += dt;
+        if (this.spawnTimer >= this.spawnInterval / this.speedMultiplier) {
+            this.spawnTimer = 0;
+            this.spawnObstacle3D();
+        }
+
+        // Move obstacles toward player
+        for (let i = this.obstacles3D.length - 1; i >= 0; i--) {
+            const o = this.obstacles3D[i];
+            const moveSpeed = currentSpeed * (1 - o.speedFactor);
+            o.z += moveSpeed * dt;
+            o.mesh.position.z = o.z;
+
+            // Remove past player
+            if (o.z > this.obstacleRemoveZ) {
+                this.scene.remove(o.mesh);
+                this.obstacles3D.splice(i, 1);
+                continue;
+            }
+
+            // Collision check (simple AABB)
+            const carHalfW = 0.7;
+            const carFrontZ = -1.5;
+            const carBackZ = 1.5;
+
+            if (Math.abs(this.carX - o.mesh.position.x) < (carHalfW + o.halfW) &&
+                o.z + o.halfD > carFrontZ && o.z - o.halfD < carBackZ) {
+                this.endGame();
+                return;
+            }
+        }
+
+        // HUD info
+        if (this.hudInfoEl) {
+            this.hudInfoEl.textContent = `${Math.floor(this.distance)}m  x${this.speedMultiplier.toFixed(1)}`;
+        }
+    }
+}
+
 // ── Variation Generator ─────────────────────────────────────────────────
 function generateVariations() {
     const variations = [];
@@ -376,15 +763,19 @@ function generateVariations() {
         for (const laneCount of laneCounts) {
             for (const freq of frequencies) {
                 for (const theme of themes) {
+                    const is3D = seed % 2 === 0;
+                    const name = generateGameName('Racing', seed);
                     variations.push({
-                        name: generateGameName('Racing', seed),
+                        name: name + (is3D ? ' 3D' : ''),
                         category: 'Racing',
+                        is3D,
                         config: {
                             speed,
                             laneCount,
                             obstacleFrequency: freq,
                             theme,
                             seed,
+                            name: name + (is3D ? ' 3D' : ''),
                         },
                         thumbnail: generateThumbnail('Racing', { theme }, seed),
                     });
@@ -398,4 +789,4 @@ function generateVariations() {
 }
 
 // ── Registration ────────────────────────────────────────────────────────
-GameRegistry.registerTemplate('Racing', RacingGame, generateVariations);
+GameRegistry.registerTemplate3D('Racing', RacingGame, RacingGame3D, generateVariations);

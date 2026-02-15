@@ -1,8 +1,10 @@
 import { BaseGame } from '../base-game.js';
+import { BaseGame3D, mulberry32 as mulberry32_3d, buildCharacterModel } from '../base-game-3d.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
 import { drawCharacter } from '../character.js';
+import * as THREE from 'three';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -17,14 +19,14 @@ function mulberry32(seed) {
 
 // ── Themes ──────────────────────────────────────────────────────────────
 const themes = [
-    { name: 'Sky',       primary: '#ffdd57', secondary: '#87ceeb', bg: '#1a1a3e', pipe: '#2ecc71', ground: '#8b6914' },
-    { name: 'Neon',      primary: '#00ff87', secondary: '#60efff', bg: '#0a0a2e', pipe: '#ff006e', ground: '#1a1a4e' },
-    { name: 'Sunset',    primary: '#ff6f61', secondary: '#ffcc5c', bg: '#1a0510', pipe: '#8b5cf6', ground: '#4a2500' },
-    { name: 'Ocean',     primary: '#00b4d8', secondary: '#90e0ef', bg: '#03045e', pipe: '#06d6a0', ground: '#023e7d' },
-    { name: 'Lava',      primary: '#ff6b35', secondary: '#ffd700', bg: '#1a0a00', pipe: '#ff0054', ground: '#3d0c00' },
-    { name: 'Candy',     primary: '#ff69b4', secondary: '#ffb6c1', bg: '#2b0012', pipe: '#9b59b6', ground: '#5a0028' },
-    { name: 'Arctic',    primary: '#a8dadc', secondary: '#f1faee', bg: '#0d1b2a', pipe: '#48cae4', ground: '#1b3a4b' },
-    { name: 'Cyber',     primary: '#00f5d4', secondary: '#f15bb5', bg: '#10002b', pipe: '#7209b7', ground: '#240046' },
+    { name: 'Sky',       primary: '#ffdd57', secondary: '#87ceeb', bg: '#1a1a3e', pipe: '#2ecc71', ground: '#8b6914', pipe3d: 0x2ecc71, ground3d: 0x8b6914, skyTop: 0x87ceeb, skyBottom: 0x1a1a3e, fog: 0x667788, bird3d: 0xffdd57 },
+    { name: 'Neon',      primary: '#00ff87', secondary: '#60efff', bg: '#0a0a2e', pipe: '#ff006e', ground: '#1a1a4e', pipe3d: 0xff006e, ground3d: 0x1a1a4e, skyTop: 0x0a0a2e, skyBottom: 0x161650, fog: 0x0a0a2e, bird3d: 0x00ff87 },
+    { name: 'Sunset',    primary: '#ff6f61', secondary: '#ffcc5c', bg: '#1a0510', pipe: '#8b5cf6', ground: '#4a2500', pipe3d: 0x8b5cf6, ground3d: 0x4a2500, skyTop: 0xff6f61, skyBottom: 0x1a0510, fog: 0x3a1520, bird3d: 0xff6f61 },
+    { name: 'Ocean',     primary: '#00b4d8', secondary: '#90e0ef', bg: '#03045e', pipe: '#06d6a0', ground: '#023e7d', pipe3d: 0x06d6a0, ground3d: 0x023e7d, skyTop: 0x03045e, skyBottom: 0x0a0a5e, fog: 0x03045e, bird3d: 0x00b4d8 },
+    { name: 'Lava',      primary: '#ff6b35', secondary: '#ffd700', bg: '#1a0a00', pipe: '#ff0054', ground: '#3d0c00', pipe3d: 0xff0054, ground3d: 0x3d0c00, skyTop: 0x1a0a00, skyBottom: 0x3a1a00, fog: 0x1a0a00, bird3d: 0xff6b35 },
+    { name: 'Candy',     primary: '#ff69b4', secondary: '#ffb6c1', bg: '#2b0012', pipe: '#9b59b6', ground: '#5a0028', pipe3d: 0x9b59b6, ground3d: 0x5a0028, skyTop: 0xff69b4, skyBottom: 0x2b0012, fog: 0x2b0012, bird3d: 0xff69b4 },
+    { name: 'Arctic',    primary: '#a8dadc', secondary: '#f1faee', bg: '#0d1b2a', pipe: '#48cae4', ground: '#1b3a4b', pipe3d: 0x48cae4, ground3d: 0x1b3a4b, skyTop: 0x87ceeb, skyBottom: 0x0d1b2a, fog: 0x5d8baa, bird3d: 0xa8dadc },
+    { name: 'Cyber',     primary: '#00f5d4', secondary: '#f15bb5', bg: '#10002b', pipe: '#7209b7', ground: '#240046', pipe3d: 0x7209b7, ground3d: 0x240046, skyTop: 0x10002b, skyBottom: 0x20104b, fog: 0x10002b, bird3d: 0x00f5d4 },
 ];
 
 // ── FlappyGame ──────────────────────────────────────────────────────────
@@ -371,6 +373,285 @@ class FlappyGame extends BaseGame {
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// 3D FlappyGame — flying through gaps in 3D perspective
+// ══════════════════════════════════════════════════════════════════════════
+class FlappyGame3D extends BaseGame3D {
+    async init() {
+        const cfg = this.config;
+        this.theme = cfg.theme;
+        this.rng = mulberry32_3d(cfg.seed || 1);
+
+        // Gap sizes in world units
+        const gapSizes = { small: 4, medium: 5.5, large: 7 };
+        this.gapHeight = gapSizes[cfg.gapSize] || gapSizes.medium;
+
+        // Pipe speed (world units/sec)
+        const pipeSpeeds = { slow: 8, medium: 12, fast: 18 };
+        this.pipeSpeed = pipeSpeeds[cfg.pipeSpeed] || pipeSpeeds.medium;
+
+        // Gravity
+        const gravities = { light: -18, normal: -28, heavy: -40 };
+        this.birdGravity = gravities[cfg.gravity] || gravities.normal;
+
+        // Pipe spacing
+        const spacings = { near: 10, far: 16 };
+        this.pipeSpacing = spacings[cfg.pipeSpacing] || spacings.far;
+
+        // Bird state
+        this.birdY = 8;
+        this.birdVY = 0;
+        this.flapStrength = Math.sqrt(Math.abs(this.birdGravity)) * 2.8;
+        this.birdX = 0;  // bird stays at x=0, world moves toward bird
+
+        // World boundaries
+        this.ceilingY = 18;
+        this.floorY = 0;
+        this.groundHeight = 0.5;
+
+        // Pipes
+        this.pipes3D = [];
+        this.nextPipeX = 15;
+        this.pipeWidth = 2;
+        this.pillarDepth = 3; // depth in Z for 3D look
+
+        // Started state
+        this.started = false;
+
+        // Disable default player model and physics
+        this.playerModel.visible = false;
+        this.gravity = 0;
+        this.moveSpeed = 0;
+
+        // Build the world
+        this.createSky(cfg.theme.skyTop || 0x87ceeb, cfg.theme.skyBottom || 0x1a1a3e, cfg.theme.fog || 0x667788, 40, 200);
+        this.buildGround();
+        this.buildBird();
+
+        // Pre-generate pipes
+        for (let i = 0; i < 8; i++) {
+            this.spawnPipe3D();
+        }
+
+        // HUD
+        this.createHUD();
+
+        // Remove pointer lock message
+        if (this.lockMsg) this.lockMsg.style.display = 'none';
+    }
+
+    buildGround() {
+        const t = this.theme;
+        const groundGeo = new THREE.PlaneGeometry(400, 20);
+        const groundMat = new THREE.MeshStandardMaterial({ color: t.ground3d || 0x8b6914, roughness: 0.9 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.set(0, 0, 0);
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+
+        // Ceiling (subtle)
+        const ceilGeo = new THREE.PlaneGeometry(400, 20);
+        const ceilMat = new THREE.MeshStandardMaterial({ color: 0x334455, roughness: 0.9, transparent: true, opacity: 0.3 });
+        const ceil = new THREE.Mesh(ceilGeo, ceilMat);
+        ceil.rotation.x = Math.PI / 2;
+        ceil.position.set(0, this.ceilingY, 0);
+        this.scene.add(ceil);
+    }
+
+    buildBird() {
+        // Use the GoBlox character as the "bird"
+        this.birdModel = buildCharacterModel();
+        this.birdModel.position.set(this.birdX, this.birdY, 0);
+        this.birdModel.castShadow = true;
+        this.birdModel.scale.set(0.8, 0.8, 0.8);
+        this.scene.add(this.birdModel);
+    }
+
+    spawnPipe3D() {
+        const t = this.theme;
+        const minGapTop = 3;
+        const maxGapTop = this.ceilingY - this.gapHeight - 2;
+        const gapTop = minGapTop + this.rng() * (maxGapTop - minGapTop);
+        const gapBottom = gapTop + this.gapHeight;
+
+        const pipeMat = new THREE.MeshStandardMaterial({
+            color: t.pipe3d || 0x2ecc71,
+            roughness: 0.5,
+            metalness: 0.2,
+        });
+
+        // Bottom pillar
+        const bottomH = gapTop;
+        if (bottomH > 0) {
+            const bottomGeo = new THREE.BoxGeometry(this.pipeWidth, bottomH, this.pillarDepth);
+            const bottomMesh = new THREE.Mesh(bottomGeo, pipeMat);
+            bottomMesh.position.set(this.nextPipeX, bottomH / 2, 0);
+            bottomMesh.castShadow = true;
+            bottomMesh.receiveShadow = true;
+            this.scene.add(bottomMesh);
+
+            // Cap on bottom pillar
+            const capGeo = new THREE.BoxGeometry(this.pipeWidth + 0.6, 0.5, this.pillarDepth + 0.6);
+            const cap = new THREE.Mesh(capGeo, pipeMat);
+            cap.position.set(this.nextPipeX, gapTop - 0.25, 0);
+            cap.castShadow = true;
+            this.scene.add(cap);
+
+            this.pipes3D.push({ meshes: [bottomMesh, cap], x: this.nextPipeX, scored: false, gapTop, gapBottom });
+        }
+
+        // Top pillar
+        const topH = this.ceilingY - gapBottom;
+        if (topH > 0) {
+            const topGeo = new THREE.BoxGeometry(this.pipeWidth, topH, this.pillarDepth);
+            const topMesh = new THREE.Mesh(topGeo, pipeMat);
+            topMesh.position.set(this.nextPipeX, gapBottom + topH / 2, 0);
+            topMesh.castShadow = true;
+            topMesh.receiveShadow = true;
+            this.scene.add(topMesh);
+
+            // Cap on top pillar
+            const capGeo = new THREE.BoxGeometry(this.pipeWidth + 0.6, 0.5, this.pillarDepth + 0.6);
+            const cap = new THREE.Mesh(capGeo, pipeMat);
+            cap.position.set(this.nextPipeX, gapBottom + 0.25, 0);
+            cap.castShadow = true;
+            this.scene.add(cap);
+
+            // Store meshes on existing pipe entry or create new
+            const existing = this.pipes3D.find(p => p.x === this.nextPipeX);
+            if (existing) {
+                existing.meshes.push(topMesh, cap);
+            } else {
+                this.pipes3D.push({ meshes: [topMesh, cap], x: this.nextPipeX, scored: false, gapTop, gapBottom });
+            }
+        }
+
+        this.nextPipeX += this.pipeSpacing;
+    }
+
+    flap3D() {
+        if (this.gameOver) return;
+        if (!this.started) this.started = true;
+        this.birdVY = this.flapStrength;
+    }
+
+    onKeyDown(code) {
+        if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+            this.flap3D();
+        }
+    }
+
+    onClick(e) {
+        this.flap3D();
+    }
+
+    updatePlayer(dt) {
+        // No default player physics
+    }
+
+    updateCamera(dt) {
+        // Side view camera that follows the bird
+        const targetPos = new THREE.Vector3(
+            this.birdX,
+            this.birdY * 0.3 + 6,
+            20
+        );
+        const t = 1 - Math.exp(-4 * dt);
+        this.camera.position.lerp(targetPos, t);
+        this.camera.lookAt(this.birdX + 8, this.birdY * 0.5 + 3, 0);
+
+        if (this.sunLight) {
+            this.sunLight.position.set(this.birdX + 30, 50, 30);
+            this.sunLight.target.position.set(this.birdX, this.birdY, 0);
+        }
+    }
+
+    update(dt) {
+        if (this.gameOver) return;
+        if (!this.started) return;
+
+        // Bird physics
+        this.birdVY += this.birdGravity * dt;
+        this.birdY += this.birdVY * dt;
+
+        // Update bird model
+        this.birdModel.position.set(this.birdX, this.birdY, 0);
+        // Tilt bird based on velocity
+        const tilt = Math.max(-0.5, Math.min(0.6, -this.birdVY * 0.03));
+        this.birdModel.rotation.z = tilt;
+
+        // Animate arms for flapping
+        const leftArm = this.birdModel.getObjectByName('leftArm');
+        const rightArm = this.birdModel.getObjectByName('rightArm');
+        if (this.birdVY > 0) {
+            const flapAnim = Math.sin(this.clock.elapsedTime * 15) * 1.2;
+            if (leftArm) leftArm.rotation.x = flapAnim;
+            if (rightArm) rightArm.rotation.x = -flapAnim;
+        } else {
+            if (leftArm) leftArm.rotation.x = 0.8;
+            if (rightArm) rightArm.rotation.x = -0.8;
+        }
+
+        // Move pipes toward bird (bird stays at x=0, world scrolls)
+        for (let i = this.pipes3D.length - 1; i >= 0; i--) {
+            const pipe = this.pipes3D[i];
+            pipe.x -= this.pipeSpeed * dt;
+
+            for (const mesh of pipe.meshes) {
+                mesh.position.x = pipe.x;
+            }
+
+            // Score when bird passes pipe
+            if (!pipe.scored && pipe.x + this.pipeWidth / 2 < this.birdX) {
+                pipe.scored = true;
+                this.score++;
+                this.updateHUDScore(this.score);
+            }
+
+            // Remove far-behind pipes
+            if (pipe.x < this.birdX - 20) {
+                for (const mesh of pipe.meshes) {
+                    this.scene.remove(mesh);
+                }
+                this.pipes3D.splice(i, 1);
+                this.spawnPipe3D();
+            }
+        }
+
+        // Floor / ceiling collision
+        if (this.birdY <= this.floorY + 1.2 || this.birdY >= this.ceilingY - 0.5) {
+            this.endGame();
+            return;
+        }
+
+        // Pipe collision
+        const birdR = 0.5; // approximate bird radius
+        for (const pipe of this.pipes3D) {
+            const pLeft = pipe.x - this.pipeWidth / 2;
+            const pRight = pipe.x + this.pipeWidth / 2;
+
+            // Check horizontal overlap
+            if (this.birdX + birdR > pLeft && this.birdX - birdR < pRight) {
+                // Hit bottom pillar?
+                if (this.birdY - birdR < pipe.gapTop) {
+                    this.endGame();
+                    return;
+                }
+                // Hit top pillar?
+                if (this.birdY + birdR > pipe.gapBottom) {
+                    this.endGame();
+                    return;
+                }
+            }
+        }
+
+        if (this.hudInfoEl) {
+            this.hudInfoEl.textContent = `${this.score} pipe${this.score !== 1 ? 's' : ''} cleared`;
+        }
+    }
+}
+
 // ── Variation Generator ─────────────────────────────────────────────────
 function generateVariations() {
     const variations = [];
@@ -384,18 +665,21 @@ function generateVariations() {
         for (const pipeSpeed of pipeSpeeds) {
             for (const gravity of gravities) {
                 for (const theme of themes) {
-                    // Alternate spacing based on seed
                     const pipeSpacing = pipeSpacings[seed % pipeSpacings.length];
+                    const is3D = seed % 2 === 0;
+                    const name = generateGameName('Flappy', seed);
                     variations.push({
-                        name: generateGameName('Flappy', seed),
+                        name: name + (is3D ? ' 3D' : ''),
                         category: 'Flappy',
+                        is3D,
                         config: {
                             gapSize,
                             pipeSpeed,
                             gravity,
                             pipeSpacing,
                             theme,
-                            seed
+                            seed,
+                            name: name + (is3D ? ' 3D' : ''),
                         },
                         thumbnail: generateThumbnail('Flappy', { theme }, seed)
                     });
@@ -404,10 +688,9 @@ function generateVariations() {
             }
         }
     }
-    // 3 * 3 * 3 * 8 = 216, but we want ~150 so let's trim
-    // Actually 216 is fine, close enough. Spec says ~150.
+    // 3 * 3 * 3 * 8 = 216
     return variations;
 }
 
 // ── Registration ────────────────────────────────────────────────────────
-GameRegistry.registerTemplate('Flappy', FlappyGame, generateVariations);
+GameRegistry.registerTemplate3D('Flappy', FlappyGame, FlappyGame3D, generateVariations);
