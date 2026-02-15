@@ -343,6 +343,16 @@ h4 { font-size: 1.25rem; }
 .p-3 { padding: 1.5rem; }
 .p-4 { padding: 2rem; }
 
+/* --- Page Transition --- */
+#content.page-transition {
+    animation: pageFadeIn 0.2s ease-in;
+}
+
+@keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* --- Animations --- */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -360,6 +370,69 @@ h4 { font-size: 1.25rem; }
 
 .animate-slide-in {
     animation: slideIn 0.3s ease forwards;
+}
+
+/* --- Catalog Loading Skeleton --- */
+.catalog-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    gap: 1.5rem;
+}
+
+.catalog-loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(108, 99, 255, 0.15);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: catalog-loading-spin 0.7s linear infinite;
+}
+
+@keyframes catalog-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+.catalog-loading-text {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+/* --- Game Error Message --- */
+.game-error-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 2rem;
+    gap: 1rem;
+    height: 100%;
+}
+
+.game-error-box .game-error-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(233, 69, 96, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+}
+
+.game-error-box h3 {
+    font-size: 1.3rem;
+}
+
+.game-error-box p {
+    color: var(--text-secondary);
+    max-width: 360px;
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 /* --- Responsive --- */
@@ -396,4 +469,76 @@ h4 { font-size: 1.25rem; }
     .grid-cols-4 {
         grid-template-columns: 1fr;
     }
+}
+
+/* ===========================
+   Light Theme - Global Overrides
+   =========================== */
+body.light-theme {
+    --shadow-btn: 0 4px 16px rgba(108, 99, 255, 0.2);
+}
+
+body.light-theme .sidebar {
+    border-right-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .sidebar-divider {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .sidebar-nav-item:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .sidebar-nav-item.active {
+    background-color: rgba(108, 99, 255, 0.08);
+}
+
+body.light-theme .card {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .catalog-card {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .catalog-search {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .catalog-pill {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: var(--text-secondary);
+}
+
+body.light-theme .catalog-sort {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .game-topbar,
+body.light-theme .game-bottombar {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .input {
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+body.light-theme .btn-secondary {
+    border-color: var(--accent-primary);
+}
+
+body.light-theme .home-game-card,
+body.light-theme .home-empty-row,
+body.light-theme .home-quick-stat {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .settings-section {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme * {
+    scrollbar-color: #ccc var(--bg-primary);
 }

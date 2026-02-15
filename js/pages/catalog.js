@@ -75,6 +75,21 @@ export function renderCatalog(container, router) {
     // Cleanup previous instance
     cleanup();
 
+    // Show loading state immediately while building the catalog
+    container.innerHTML = `
+        <div class="catalog-loading animate-fade-in">
+            <div class="catalog-loading-spinner"></div>
+            <div class="catalog-loading-text">Spiele werden geladen...</div>
+        </div>
+    `;
+
+    // Use requestAnimationFrame to let the loading spinner render before heavy work
+    requestAnimationFrame(() => {
+        renderCatalogContent(container, router);
+    });
+}
+
+function renderCatalogContent(container, router) {
     allGames = GameRegistry.getAllGames();
     const categories = GameRegistry.getCategories();
 

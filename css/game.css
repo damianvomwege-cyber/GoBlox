@@ -11,6 +11,14 @@
     /* Cancel out the #content padding */
 }
 
+@media (max-width: 768px) {
+    .game-page {
+        /* Account for mobile bottom bar (56px + 8px buffer) */
+        height: calc(100vh - 64px);
+        margin: -1rem;
+    }
+}
+
 /* ── Top Bar ───────────────────────────────────────────────────────── */
 
 .game-topbar {

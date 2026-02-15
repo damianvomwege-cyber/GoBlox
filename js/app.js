@@ -17,6 +17,25 @@ const sidebar = document.getElementById('sidebar');
 
 let sidebarRendered = false;
 
+// ── Restore saved theme on app start ─────────────────────────────────
+(function restoreTheme() {
+    const user = Auth.currentUser();
+    if (user) {
+        const settings = JSON.parse(localStorage.getItem(`goblox_settings_${user.id}`) || '{}');
+        if (settings.theme === 'light') {
+            document.body.classList.add('light-theme');
+        }
+    }
+})();
+
+// ── Page transition helper ───────────────────────────────────────────
+function triggerPageTransition() {
+    content.classList.remove('page-transition');
+    // Force reflow so the browser restarts the animation
+    void content.offsetWidth;
+    content.classList.add('page-transition');
+}
+
 function ensureSidebar() {
     if (!sidebarRendered || !sidebar.querySelector('.sidebar-inner')) {
         renderSidebar(sidebar, router);
@@ -33,6 +52,7 @@ function requireAuth(renderFn) {
         sidebar.classList.remove('hidden');
         ensureSidebar();
         updateSidebarActive();
+        triggerPageTransition();
         renderFn(...args);
     };
 }
@@ -42,6 +62,20 @@ function cleanupGame() {
         renderGame._cleanup();
         renderGame._cleanup = null;
     }
+}
+
+// ── 404 Page ─────────────────────────────────────────────────────────
+function render404(container) {
+    container.innerHTML = `
+        <div class="not-found-page animate-fade-in" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;">
+            <div style="font-size:5rem;font-weight:900;background:var(--accent-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;">404</div>
+            <h2 style="margin-top:1rem;font-size:1.5rem;">Seite nicht gefunden</h2>
+            <p class="text-secondary" style="margin-top:0.5rem;max-width:400px;">
+                Die Seite, die du suchst, existiert nicht oder wurde verschoben.
+            </p>
+            <a href="#/home" class="btn mt-3">Zurueck zur Startseite</a>
+        </div>
+    `;
 }
 
 router
@@ -54,6 +88,7 @@ router
         sidebar.classList.add('hidden');
         sidebarRendered = false;
         content.style.padding = '0';
+        triggerPageTransition();
         renderLogin(content, router);
     })
     .on('/', requireAuth(() => {
@@ -94,6 +129,11 @@ router
         cleanupGame();
         content.style.padding = '2rem';
         renderSettings(content, router);
+    }))
+    .on('*', requireAuth(() => {
+        cleanupGame();
+        content.style.padding = '2rem';
+        render404(content);
     }))
     .resolve();
 

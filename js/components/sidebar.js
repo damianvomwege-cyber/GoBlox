@@ -1,4 +1,5 @@
 import { Auth } from '../auth.js';
+import { drawAvatar } from './avatar.js';
 
 /* ===========================
    SVG Icons (20x20, stroke-based)
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
 
 /* ===========================
    Draw Mini Avatar on Canvas
+   Uses the shared avatar component
    =========================== */
 function drawMiniAvatar(canvas) {
     const user = Auth.currentUser();
@@ -74,7 +76,7 @@ function drawMiniAvatar(canvas) {
     canvas.width = size;
     canvas.height = size;
 
-    const avatar = user.avatar || { skin: '#ffb347', shirt: '#6c63ff', pants: '#333' };
+    const avatar = user.avatar || { skin: '#ffb347', shirt: '#6c63ff', pants: '#333', hair: 0, accessory: 0 };
 
     // Background circle
     ctx.beginPath();
@@ -82,22 +84,8 @@ function drawMiniAvatar(canvas) {
     ctx.fillStyle = 'rgba(108, 99, 255, 0.2)';
     ctx.fill();
 
-    // Head
-    ctx.beginPath();
-    ctx.arc(size / 2, 14, 8, 0, Math.PI * 2);
-    ctx.fillStyle = avatar.skin;
-    ctx.fill();
-
-    // Body / Shirt
-    ctx.beginPath();
-    ctx.fillStyle = avatar.shirt;
-    ctx.fillRect(12, 22, 16, 10);
-
-    // Simple rounded bottom for body
-    ctx.beginPath();
-    ctx.arc(size / 2, 32, 8, 0, Math.PI);
-    ctx.fillStyle = avatar.shirt;
-    ctx.fill();
+    // Draw the avatar using the shared component
+    drawAvatar(ctx, avatar, size / 2, 3, 22);
 }
 
 /* ===========================

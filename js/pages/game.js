@@ -8,7 +8,7 @@ let resizeHandler = null;
 
 function cleanup() {
     if (currentGame) {
-        currentGame.stop();
+        try { currentGame.stop(); } catch (e) { /* ignore cleanup errors */ }
         currentGame = null;
     }
     if (scoreInterval) {
@@ -20,6 +20,17 @@ function cleanup() {
         resizeHandler = null;
     }
     currentGameData = null;
+}
+
+function showGameError(containerEl, message) {
+    containerEl.innerHTML = `
+        <div class="game-error-box">
+            <div class="game-error-icon">!</div>
+            <h3>Fehler</h3>
+            <p>${message}</p>
+            <p class="text-secondary" style="font-size:0.8rem;">Versuche es mit "Neustart" oder gehe zurueck zum Katalog.</p>
+        </div>
+    `;
 }
 
 export function renderGame(container, router, gameId) {
@@ -152,7 +163,7 @@ export function renderGame(container, router, gameId) {
             currentGame = GameRegistry.createGameInstance(game, canvas);
         } catch (err) {
             console.error('Failed to create game instance:', err);
-            canvasWrap.innerHTML = `<p class="text-secondary" style="padding:2rem;">Fehler beim Laden des Spiels.</p>`;
+            showGameError(canvasWrap, 'Das Spiel konnte nicht geladen werden.');
             return;
         }
 
@@ -161,7 +172,14 @@ export function renderGame(container, router, gameId) {
             showGameOver(score);
         };
 
-        currentGame.start();
+        try {
+            currentGame.start();
+        } catch (err) {
+            console.error('Game crashed on start:', err);
+            showGameError(canvasWrap, 'Das Spiel ist unerwartet abgestuerzt.');
+            currentGame = null;
+            return;
+        }
 
         // Score polling
         if (scoreInterval) clearInterval(scoreInterval);
