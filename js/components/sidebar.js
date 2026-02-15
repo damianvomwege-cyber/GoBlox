@@ -1,5 +1,6 @@
 import { Auth } from '../auth.js';
 import { create3DAvatar, registerPageAvatar } from './avatar.js';
+import { GoBux, GOBUX_ICON } from '../gobux.js';
 
 /* ===========================
    SVG Icons (20x20, stroke-based)
@@ -39,6 +40,12 @@ const ICONS = {
         <path d="M8 18h8"/>
     </svg>`,
 
+    shop: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 0 1-8 0"/>
+    </svg>`,
+
     settings: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
@@ -60,6 +67,7 @@ const NAV_ITEMS = [
     { label: 'Profil',        icon: ICONS.profile,     href: '#/profile' },
     { label: 'Freunde',       icon: ICONS.friends,     href: '#/friends' },
     { label: 'Rangliste',     icon: ICONS.leaderboard, href: '#/leaderboard' },
+    { label: 'Shop',          icon: ICONS.shop,        href: '#/store' },
     { label: 'Einstellungen', icon: ICONS.settings,    href: '#/settings' },
 ];
 
@@ -107,7 +115,13 @@ export function renderSidebar(container, router) {
             <!-- User Info -->
             <div class="sidebar-user">
                 <div class="sidebar-avatar-3d" style="width:40px;height:40px;border-radius:50%;overflow:hidden;"></div>
-                <span class="sidebar-username">${user.name}</span>
+                <div class="sidebar-user-info">
+                    <span class="sidebar-username">${user.name}</span>
+                    <div class="sidebar-gobux">
+                        ${GOBUX_ICON}
+                        <span class="sidebar-gobux-amount">${GoBux.getBalance(user.id).toLocaleString('de-DE')}</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Divider -->

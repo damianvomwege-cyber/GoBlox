@@ -41,6 +41,12 @@
     flex-shrink: 0;
 }
 
+.sidebar-user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .sidebar-username {
     font-size: 0.9rem;
     font-weight: 600;

@@ -2,6 +2,7 @@
 import { Auth } from '../auth.js';
 import { GameRegistry } from '../games/loader.js';
 import { create3DAvatar, registerPageAvatar } from '../components/avatar.js';
+import { GoBux, GOBUX_ICON, GOBUX_ICON_LG } from '../gobux.js';
 
 /**
  * Seeded pseudo-random number generator (mulberry32).
@@ -148,6 +149,13 @@ export function renderHome(container, router) {
                 </div>
                 <div class="home-quick-stats">
                     <div class="home-quick-stat">
+                        <div class="home-quick-stat-value" style="color:#ffd700;display:flex;align-items:center;justify-content:center;gap:0.3rem;">
+                            ${GOBUX_ICON}
+                            ${GoBux.getBalance(user.id).toLocaleString('de-DE')}
+                        </div>
+                        <div class="home-quick-stat-label">GoBux</div>
+                    </div>
+                    <div class="home-quick-stat">
                         <div class="home-quick-stat-value">${(user.gamesPlayed || 0).toLocaleString('de-DE')}</div>
                         <div class="home-quick-stat-label">Gespielt</div>
                     </div>
@@ -158,6 +166,13 @@ export function renderHome(container, router) {
                     <div class="home-quick-stat">
                         <div class="home-quick-stat-value">${(user.favorites || []).length}</div>
                         <div class="home-quick-stat-label">Favoriten</div>
+                    </div>
+                </div>
+                <div class="home-gobux-tip">
+                    <div class="home-gobux-tip-icon">${GOBUX_ICON_LG}</div>
+                    <div class="home-gobux-tip-text">
+                        <h4>GoBux verdienen</h4>
+                        <p>Spiele Spiele um GoBux zu verdienen! Jedes Spiel bringt mindestens 1 GoBux. Erhalte Bonus-GoBux durch hohe Punktzahlen und spielspezifische Erfolge. Gib sie im <a href="#/store" style="color:#ffd700;text-decoration:underline;">Shop</a> fuer Game Passes aus!</p>
                     </div>
                 </div>
             </section>

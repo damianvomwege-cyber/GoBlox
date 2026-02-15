@@ -11,6 +11,7 @@ import { renderProfile } from './pages/profile.js';
 import { renderFriends } from './pages/friends.js';
 import { renderLeaderboard } from './pages/leaderboard.js';
 import { renderSettings } from './pages/settings.js';
+import { renderStore } from './pages/store.js';
 
 const router = new Router();
 const content = document.getElementById('content');
@@ -143,6 +144,12 @@ router
         cleanupAvatars();
         content.style.padding = '2rem';
         renderLeaderboard(content, router);
+    }))
+    .on('/store', requireAuth(() => {
+        cleanupGame();
+        cleanupAvatars();
+        content.style.padding = '2rem';
+        renderStore(content, router);
     }))
     .on('/settings', requireAuth(() => {
         cleanupGame();

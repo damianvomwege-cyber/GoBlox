@@ -2,6 +2,7 @@
 import { Auth } from '../auth.js';
 import { GameRegistry } from '../games/loader.js';
 import { create3DAvatar, registerPageAvatar } from '../components/avatar.js';
+import { GoBux, GOBUX_ICON, GAME_PASSES } from '../gobux.js';
 
 // Standard character config (fixed, same for everyone)
 const STANDARD_AVATAR = {
@@ -95,6 +96,62 @@ export function renderProfile(container, router) {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- GoBux Section -->
+            <div class="profile-gobux-section">
+                <h3 class="mb-2">GoBux</h3>
+                <div class="profile-gobux-balance">
+                    ${GOBUX_ICON}
+                    <span>${GoBux.getBalance(user.id).toLocaleString('de-DE')} GoBux</span>
+                </div>
+
+                ${(() => {
+                    const ownedPasses = GoBux.getPasses(user.id);
+                    const ownedPassData = ownedPasses.map(pid => GAME_PASSES.find(p => p.id === pid)).filter(Boolean);
+                    if (ownedPassData.length === 0) return '<p class="text-secondary" style="font-size:0.85rem;margin-bottom:1rem;">Noch keine Game Passes. Besuche den <a href="#/store" style="color:#ffd700;">Shop</a>!</p>';
+                    return `
+                        <div class="profile-passes-grid">
+                            ${ownedPassData.map(p => `
+                                <div class="profile-pass-badge">
+                                    ${p.icon}
+                                    <span>${p.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                })()}
+
+                ${(() => {
+                    const transactions = GoBux.getTransactions(user.id).slice(0, 5);
+                    if (transactions.length === 0) return '';
+                    return `
+                        <h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--text-secondary);">Letzte Transaktionen</h4>
+                        <div class="store-transactions-list" style="margin-bottom:1rem;">
+                            ${transactions.map(tx => {
+                                const isEarn = tx.type === 'earn';
+                                const date = new Date(tx.date).toLocaleDateString('de-DE', {
+                                    day: '2-digit', month: '2-digit', year: '2-digit',
+                                    hour: '2-digit', minute: '2-digit',
+                                });
+                                return `
+                                    <div class="store-tx-item">
+                                        <div class="store-tx-icon ${isEarn ? 'store-tx-earn' : 'store-tx-spend'}">
+                                            ${isEarn ? '+' : '-'}
+                                        </div>
+                                        <div class="store-tx-info">
+                                            <div class="store-tx-reason">${tx.reason}</div>
+                                            <div class="store-tx-date">${date}</div>
+                                        </div>
+                                        <div class="store-tx-amount ${isEarn ? 'store-tx-earn' : 'store-tx-spend'}">
+                                            ${isEarn ? '+' : ''}${tx.amount.toLocaleString('de-DE')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                })()}
             </div>
 
             <!-- Favorite Games -->

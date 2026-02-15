@@ -1,5 +1,6 @@
 import { GameRegistry } from '../games/loader.js';
 import { Auth } from '../auth.js';
+import { GoBux, GOBUX_ICON } from '../gobux.js';
 
 let currentGame = null;
 let currentGameData = null;
@@ -117,6 +118,10 @@ export function renderGame(container, router, gameId) {
                     <h2 class="game-over-title">Game Over!</h2>
                     <p class="game-over-score" id="game-over-score">0</p>
                     <p class="game-over-label">Punkte</p>
+                    <div class="gobux-reward hidden" id="gobux-reward">
+                        <span class="gobux-reward-coin">${GOBUX_ICON}</span>
+                        <span class="gobux-reward-text">Du hast <span class="gobux-reward-counter" id="gobux-reward-counter">0</span> GoBux verdient!</span>
+                    </div>
                     <div class="game-over-actions">
                         <button class="btn" id="game-over-replay">Nochmal spielen</button>
                         <button class="btn btn-secondary" id="game-over-catalog">Zuruck zum Katalog</button>
@@ -157,6 +162,9 @@ export function renderGame(container, router, gameId) {
     // ── Start game ──────────────────────────────────────────────────────
     function startGame() {
         overlay.classList.add('hidden');
+        // Hide GoBux reward from previous round
+        const rewardEl = container.querySelector('#gobux-reward');
+        if (rewardEl) rewardEl.classList.add('hidden');
 
         if (currentGame) {
             currentGame.stop();
@@ -228,6 +236,35 @@ export function renderGame(container, router, gameId) {
                 totalScore: (u.totalScore || 0) + score,
                 recentGames
             });
+
+            // Calculate and award GoBux
+            const category = game.category || '';
+            const { earned, reason } = GoBux.calculateReward(category, score);
+            GoBux.earn(u.id, earned, reason);
+
+            // Show GoBux reward animation
+            const rewardEl = container.querySelector('#gobux-reward');
+            const counterEl = container.querySelector('#gobux-reward-counter');
+            if (rewardEl && counterEl) {
+                rewardEl.classList.remove('hidden');
+                // Animate the counter counting up
+                let current = 0;
+                const step = Math.max(1, Math.ceil(earned / 20));
+                const counterInterval = setInterval(() => {
+                    current += step;
+                    if (current >= earned) {
+                        current = earned;
+                        clearInterval(counterInterval);
+                    }
+                    counterEl.textContent = current;
+                }, 50);
+            }
+
+            // Update sidebar balance if visible
+            const sidebarBalance = document.querySelector('.sidebar-gobux-amount');
+            if (sidebarBalance) {
+                sidebarBalance.textContent = GoBux.getBalance(u.id).toLocaleString('de-DE');
+            }
         }
     }
 
