@@ -1,5 +1,5 @@
 import { Auth } from '../auth.js';
-import { drawAvatar } from './avatar.js';
+import { create3DAvatar, registerPageAvatar } from './avatar.js';
 
 /* ===========================
    SVG Icons (20x20, stroke-based)
@@ -64,28 +64,15 @@ const NAV_ITEMS = [
 ];
 
 /* ===========================
-   Draw Mini Avatar on Canvas
-   Uses the shared avatar component
+   Track sidebar 3D avatar for cleanup
    =========================== */
-function drawMiniAvatar(canvas) {
-    const user = Auth.currentUser();
-    if (!user) return;
+let sidebarAvatar3D = null;
 
-    const ctx = canvas.getContext('2d');
-    const size = 40;
-    canvas.width = size;
-    canvas.height = size;
-
-    const avatar = user.avatar || { skin: '#ffb347', shirt: '#6c63ff', pants: '#333', hair: 0, accessory: 0 };
-
-    // Background circle
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(108, 99, 255, 0.2)';
-    ctx.fill();
-
-    // Draw the avatar using the shared component
-    drawAvatar(ctx, avatar, size / 2, 3, 22);
+function cleanupSidebarAvatar() {
+    if (sidebarAvatar3D) {
+        try { sidebarAvatar3D.dispose(); } catch (e) { /* ignore */ }
+        sidebarAvatar3D = null;
+    }
 }
 
 /* ===========================
@@ -94,6 +81,9 @@ function drawMiniAvatar(canvas) {
 export function renderSidebar(container, router) {
     const user = Auth.currentUser();
     if (!user) return;
+
+    // Cleanup previous 3D avatar
+    cleanupSidebarAvatar();
 
     const currentHash = window.location.hash || '#/home';
 
@@ -116,7 +106,7 @@ export function renderSidebar(container, router) {
 
             <!-- User Info -->
             <div class="sidebar-user">
-                <canvas class="sidebar-avatar" width="40" height="40"></canvas>
+                <div class="sidebar-avatar-3d" style="width:40px;height:40px;border-radius:50%;overflow:hidden;"></div>
                 <span class="sidebar-username">${user.name}</span>
             </div>
 
@@ -139,16 +129,25 @@ export function renderSidebar(container, router) {
         </div>
     `;
 
-    // Draw the mini avatar
-    const avatarCanvas = container.querySelector('.sidebar-avatar');
-    if (avatarCanvas) {
-        drawMiniAvatar(avatarCanvas);
+    // Create small 3D avatar in sidebar
+    const avatarContainer = container.querySelector('.sidebar-avatar-3d');
+    if (avatarContainer) {
+        const avatar = user.avatar || { skin: '#ffb347', shirt: '#6c63ff', pants: '#333', hair: 0, accessory: 0 };
+        sidebarAvatar3D = create3DAvatar(avatarContainer, avatar, {
+            width: 40,
+            height: 40,
+            autoRotate: true,
+            rotateSpeed: 0.006,
+            enableControls: false,
+        });
+        registerPageAvatar(sidebarAvatar3D);
     }
 
     // Logout handler
     const logoutBtn = container.querySelector('#sidebar-logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
+            cleanupSidebarAvatar();
             Auth.logout();
             router.navigate('#/login');
         });
@@ -174,4 +173,9 @@ export function updateSidebarActive() {
             item.classList.remove('active');
         }
     });
+}
+
+// Expose cleanup for use by app.js
+export function cleanupSidebar() {
+    cleanupSidebarAvatar();
 }

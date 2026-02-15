@@ -1,7 +1,7 @@
 // js/pages/profile.js
 import { Auth } from '../auth.js';
 import { GameRegistry } from '../games/loader.js';
-import { drawAvatar } from '../components/avatar.js';
+import { create3DAvatar, drawAvatar, registerPageAvatar } from '../components/avatar.js';
 
 const SKIN_COLORS = ['#ffb347', '#f5d6ba', '#deb887', '#c68642', '#8d5524', '#4a2912', '#ffe0bd', '#f1c27d'];
 const SHIRT_COLORS = ['#6c63ff', '#e94560', '#00cec9', '#55efc4', '#fdcb6e', '#fd79a8', '#636e72', '#ffffff'];
@@ -11,9 +11,18 @@ const ACCESSORY_STYLES = [0, 1, 2, 3, 4, 5];
 const HAIR_LABELS = ['Keine', 'Kurz', 'Lang', 'Mohawk', 'Lockig', 'Kappe'];
 const ACCESSORY_LABELS = ['Keines', 'Hut', 'Brille', 'Stirnband', 'Krone', 'Maske'];
 
+// Track the active 3D avatar for cleanup
+let activeProfileAvatar = null;
+
 export function renderProfile(container, router) {
     const user = Auth.currentUser();
     if (!user) return;
+
+    // Dispose previous 3D avatar if it exists
+    if (activeProfileAvatar) {
+        try { activeProfileAvatar.dispose(); } catch (e) { /* ignore */ }
+        activeProfileAvatar = null;
+    }
 
     // Working copy of avatar config
     const avatarConfig = { ...(user.avatar || { skin: '#ffb347', shirt: '#6c63ff', pants: '#333333', hair: 0, accessory: 0 }) };
@@ -36,7 +45,7 @@ export function renderProfile(container, router) {
                 <!-- Left: Avatar Preview -->
                 <div class="profile-preview-col">
                     <div class="profile-preview-card">
-                        <canvas id="profile-avatar-canvas" width="200" height="300"></canvas>
+                        <div id="profile-avatar-3d" style="width:300px;height:400px;"></div>
                         <div class="profile-preview-name">${user.name}</div>
                     </div>
                 </div>
@@ -161,16 +170,20 @@ export function renderProfile(container, router) {
         </div>
     `;
 
-    // ── Draw main avatar preview ──
-    const mainCanvas = container.querySelector('#profile-avatar-canvas');
-    function drawMainPreview() {
-        const ctx = mainCanvas.getContext('2d');
-        ctx.clearRect(0, 0, 200, 300);
-        drawAvatar(ctx, avatarConfig, 100, 20, 120);
+    // ── Create 3D avatar preview with OrbitControls ──
+    const avatarContainer = container.querySelector('#profile-avatar-3d');
+    if (avatarContainer) {
+        activeProfileAvatar = create3DAvatar(avatarContainer, avatarConfig, {
+            width: 300,
+            height: 400,
+            autoRotate: true,
+            rotateSpeed: 0.005,
+            enableControls: true,
+        });
+        registerPageAvatar(activeProfileAvatar);
     }
-    drawMainPreview();
 
-    // ── Draw mini avatars for hair styles ──
+    // ── Draw mini avatars for hair styles (still 2D for performance) ──
     container.querySelectorAll('#profile-hair-row .profile-mini-avatar').forEach(c => {
         const hairVal = parseInt(c.dataset.hair);
         const ctx = c.getContext('2d');
@@ -178,13 +191,20 @@ export function renderProfile(container, router) {
         drawAvatar(ctx, { ...avatarConfig, hair: hairVal }, 25, 5, 30);
     });
 
-    // ── Draw mini avatars for accessories ──
+    // ── Draw mini avatars for accessories (still 2D for performance) ──
     container.querySelectorAll('#profile-acc-row .profile-mini-avatar').forEach(c => {
         const accVal = parseInt(c.dataset.acc);
         const ctx = c.getContext('2d');
         ctx.clearRect(0, 0, 50, 75);
         drawAvatar(ctx, { ...avatarConfig, accessory: accVal }, 25, 5, 30);
     });
+
+    // ── Helper to update the 3D preview ──
+    function update3DPreview() {
+        if (activeProfileAvatar) {
+            activeProfileAvatar.updateConfig(avatarConfig);
+        }
+    }
 
     // ── Color selection handlers ──
     function handleColorClick(e) {
@@ -198,7 +218,7 @@ export function renderProfile(container, router) {
         btn.parentElement.querySelectorAll('.profile-color-circle').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
 
-        drawMainPreview();
+        update3DPreview();
         redrawMiniAvatars();
     }
 
@@ -214,7 +234,7 @@ export function renderProfile(container, router) {
         avatarConfig.hair = val;
         container.querySelectorAll('#profile-hair-row .profile-style-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
-        drawMainPreview();
+        update3DPreview();
     });
 
     // ── Accessory selection ──
@@ -225,7 +245,7 @@ export function renderProfile(container, router) {
         avatarConfig.accessory = val;
         container.querySelectorAll('#profile-acc-row .profile-style-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
-        drawMainPreview();
+        update3DPreview();
     });
 
     function redrawMiniAvatars() {
@@ -259,3 +279,11 @@ export function renderProfile(container, router) {
         });
     });
 }
+
+// Expose cleanup so app.js can call it on navigation
+renderProfile._cleanup = function () {
+    if (activeProfileAvatar) {
+        try { activeProfileAvatar.dispose(); } catch (e) { /* ignore */ }
+        activeProfileAvatar = null;
+    }
+};

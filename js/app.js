@@ -1,7 +1,8 @@
 import { Router } from './router.js';
 import { Auth } from './auth.js';
 import { renderLogin } from './pages/login.js';
-import { renderSidebar, updateSidebarActive } from './components/sidebar.js';
+import { renderSidebar, updateSidebarActive, cleanupSidebar } from './components/sidebar.js';
+import { cleanupPageAvatars } from './components/avatar.js';
 import { GameRegistry } from './games/loader.js';
 import { renderCatalog } from './pages/catalog.js';
 import { renderGame } from './pages/game.js';
@@ -43,6 +44,15 @@ function ensureSidebar() {
     }
 }
 
+// ── Cleanup all 3D avatars when navigating between pages ─────────────
+function cleanupAvatars() {
+    // Cleanup page-specific avatars (home, profile)
+    if (renderHome._cleanup) renderHome._cleanup();
+    if (renderProfile._cleanup) renderProfile._cleanup();
+    // Cleanup any remaining registered avatars
+    cleanupPageAvatars();
+}
+
 function requireAuth(renderFn) {
     return (...args) => {
         if (!Auth.currentUser()) {
@@ -81,11 +91,13 @@ function render404(container) {
 router
     .on('/login', () => {
         cleanupGame();
+        cleanupAvatars();
         if (Auth.currentUser()) {
             router.navigate('#/home');
             return;
         }
         sidebar.classList.add('hidden');
+        cleanupSidebar();
         sidebarRendered = false;
         content.style.padding = '0';
         triggerPageTransition();
@@ -93,45 +105,54 @@ router
     })
     .on('/', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderHome(content, router);
     }))
     .on('/home', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderHome(content, router);
     }))
     .on('/games', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderCatalog(content, router);
     }))
     .on('/game', requireAuth((...params) => {
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderGame(content, router, ...params);
     }))
     .on('/profile', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderProfile(content, router);
     }))
     .on('/friends', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderFriends(content, router);
     }))
     .on('/leaderboard', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderLeaderboard(content, router);
     }))
     .on('/settings', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         renderSettings(content, router);
     }))
     .on('*', requireAuth(() => {
         cleanupGame();
+        cleanupAvatars();
         content.style.padding = '2rem';
         render404(content);
     }))

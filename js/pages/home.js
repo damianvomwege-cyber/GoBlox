@@ -1,7 +1,7 @@
 // js/pages/home.js
 import { Auth } from '../auth.js';
 import { GameRegistry } from '../games/loader.js';
-import { drawAvatar } from '../components/avatar.js';
+import { create3DAvatar, registerPageAvatar } from '../components/avatar.js';
 
 /**
  * Seeded pseudo-random number generator (mulberry32).
@@ -53,9 +53,18 @@ const CAT_GRADIENTS = [
     'linear-gradient(135deg, #636e72, #b2bec3)',
 ];
 
+// Track the active 3D avatar for cleanup
+let homeAvatar3D = null;
+
 export function renderHome(container, router) {
     const user = Auth.currentUser();
     if (!user) return;
+
+    // Cleanup previous home avatar
+    if (homeAvatar3D) {
+        try { homeAvatar3D.dispose(); } catch (e) { /* ignore */ }
+        homeAvatar3D = null;
+    }
 
     const allGames = GameRegistry.getAllGames();
     const categories = GameRegistry.getCategories();
@@ -84,7 +93,7 @@ export function renderHome(container, router) {
                         <a href="#/games" class="btn mt-2">Spiele entdecken</a>
                     </div>
                     <div class="home-banner-avatar">
-                        <canvas id="home-avatar" width="100" height="150"></canvas>
+                        <div id="home-avatar-3d" style="width:120px;height:180px;"></div>
                     </div>
                 </div>
             </div>
@@ -155,11 +164,17 @@ export function renderHome(container, router) {
         </div>
     `;
 
-    // Draw welcome avatar
-    const avatarCanvas = container.querySelector('#home-avatar');
-    if (avatarCanvas) {
-        const ctx = avatarCanvas.getContext('2d');
-        drawAvatar(ctx, user.avatar, 50, 10, 60);
+    // Create 3D avatar in the welcome banner
+    const avatarContainer = container.querySelector('#home-avatar-3d');
+    if (avatarContainer) {
+        homeAvatar3D = create3DAvatar(avatarContainer, user.avatar, {
+            width: 120,
+            height: 180,
+            autoRotate: true,
+            rotateSpeed: 0.008,
+            enableControls: false,
+        });
+        registerPageAvatar(homeAvatar3D);
     }
 
     // Game card clicks
@@ -178,6 +193,14 @@ export function renderHome(container, router) {
         });
     });
 }
+
+// Expose cleanup so app.js can call it on navigation
+renderHome._cleanup = function () {
+    if (homeAvatar3D) {
+        try { homeAvatar3D.dispose(); } catch (e) { /* ignore */ }
+        homeAvatar3D = null;
+    }
+};
 
 function gameCard(game) {
     return `
