@@ -176,7 +176,11 @@ export function updateSidebarActive() {
 
     navItems.forEach(item => {
         const route = item.dataset.route;
-        if (route === currentHash || currentHash.startsWith(route + '/')) {
+        // Match exact route, sub-routes, and also #/game → #/games
+        const isActive = route === currentHash
+            || currentHash.startsWith(route + '/')
+            || (route === '#/games' && currentHash.startsWith('#/game/'));
+        if (isActive) {
             item.classList.add('active');
         } else {
             item.classList.remove('active');

@@ -1,0 +1,276 @@
+/* ===========================
+   Game Catalog Page
+   =========================== */
+
+.catalog-page {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ── Search Bar ────────────────────────────────────────────────────── */
+
+.catalog-search-wrap {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.catalog-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.catalog-search {
+    width: 100%;
+    padding: 0.85rem 1rem 0.85rem 2.75rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.catalog-search:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+}
+
+.catalog-search::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* ── Category Pills ────────────────────────────────────────────────── */
+
+.catalog-categories {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.catalog-categories::-webkit-scrollbar {
+    display: none;
+}
+
+.catalog-pill {
+    flex-shrink: 0;
+    padding: 0.4rem 0.9rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.catalog-pill:hover {
+    background: rgba(108, 99, 255, 0.12);
+    color: var(--text-primary);
+    border-color: rgba(108, 99, 255, 0.3);
+}
+
+.catalog-pill.active {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+}
+
+.catalog-pill-count {
+    opacity: 0.6;
+    font-size: 0.72rem;
+    margin-left: 0.2rem;
+}
+
+.catalog-pill.active .catalog-pill-count {
+    opacity: 0.8;
+}
+
+/* ── Toolbar (sort + count) ────────────────────────────────────────── */
+
+.catalog-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.catalog-count {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.catalog-sort-wrap {
+    position: relative;
+}
+
+.catalog-sort {
+    padding: 0.4rem 0.8rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 1.8rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0b0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+}
+
+.catalog-sort:focus {
+    border-color: var(--accent-primary);
+}
+
+.catalog-sort option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* ── Game Card Grid ────────────────────────────────────────────────── */
+
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+/* ── Game Card ─────────────────────────────────────────────────────── */
+
+.catalog-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.catalog-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Thumbnail */
+.catalog-card-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+
+.catalog-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--transition-fast);
+}
+
+.catalog-card:hover .catalog-card-thumb img {
+    transform: scale(1.05);
+}
+
+/* Info section */
+.catalog-card-info {
+    padding: 0.65rem 0.75rem;
+}
+
+.catalog-card-name {
+    font-weight: 700;
+    font-size: 0.88rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.4rem;
+}
+
+.catalog-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* Category badge */
+.catalog-card-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    line-height: 1.5;
+}
+
+/* Player count */
+.catalog-card-players {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Infinite Scroll Loader ────────────────────────────────────────── */
+
+.catalog-loader {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.catalog-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(108, 99, 255, 0.2);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: catalog-spin 0.7s linear infinite;
+}
+
+@keyframes catalog-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .catalog-card-info {
+        padding: 0.5rem 0.6rem;
+    }
+
+    .catalog-card-name {
+        font-size: 0.8rem;
+    }
+
+    .catalog-card-badge {
+        font-size: 0.62rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
