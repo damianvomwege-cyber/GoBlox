@@ -257,7 +257,7 @@ class ShooterGame3D extends BaseGame3D {
 
     fireBullet() {
         // Shoot in the direction the camera is facing
-        const dir = new THREE.Vector3(0, 0, -1);
+        const dir = new THREE.Vector3(0, 0, 1);
         dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraAngleX);
 
         const mesh = new THREE.Mesh(this.bulletGeo, this.bulletMat);

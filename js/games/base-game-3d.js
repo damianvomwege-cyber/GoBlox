@@ -498,13 +498,13 @@ export class BaseGame3D {
         let moveZ = 0;
         if (this.keys['KeyW'] || this.keys['ArrowUp']) moveZ += 1;
         if (this.keys['KeyS'] || this.keys['ArrowDown']) moveZ -= 1;
-        if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX += 1;
-        if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX -= 1;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX -= 1;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX += 1;
 
         // Movement relative to camera direction
         const camYaw = this.cameraAngleX;
-        const forward = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
-        const right = new THREE.Vector3(-Math.cos(camYaw), 0, Math.sin(camYaw));
+        const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
+        const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
 
         const moveDir = new THREE.Vector3();
         moveDir.addScaledVector(forward, moveZ);
@@ -608,7 +608,7 @@ export class BaseGame3D {
         // Apply mouse movement to camera angles
         if (this.pointerLocked) {
             this.cameraAngleX += this.mouseMovement.x * this.cameraSensitivity;
-            this.cameraAngleY -= this.mouseMovement.y * this.cameraSensitivity;
+            this.cameraAngleY += this.mouseMovement.y * this.cameraSensitivity;
             // Clamp vertical angle
             this.cameraAngleY = Math.max(-0.2, Math.min(1.2, this.cameraAngleY));
         }
