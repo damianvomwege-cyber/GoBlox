@@ -1,8 +1,10 @@
 import { BaseGame } from '../base-game.js';
+import { BaseGame3D, mulberry32 as mulberry32_3d } from '../base-game-3d.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
 import { drawCharacter } from '../character.js';
+import * as THREE from 'three';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -430,6 +432,325 @@ class CatchGame extends BaseGame {
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// 3D CatchGame — Falling objects in 3D arena
+// ══════════════════════════════════════════════════════════════════════════
+class CatchGame3D extends BaseGame3D {
+    async init() {
+        const cfg = this.config;
+        this.theme = cfg.theme;
+        this.rng = mulberry32_3d(cfg.seed || 1);
+
+        // Config
+        const itemSpeedMap = { slow: 6, medium: 10, fast: 15 };
+        this.baseItemSpeed = itemSpeedMap[cfg.itemSpeed] || 10;
+
+        const playerSpeedMap = { slow: 6, medium: 10, fast: 14 };
+        this.moveSpeed = playerSpeedMap[cfg.playerSpeed] || 10;
+
+        this.itemVariety = cfg.itemVariety || 4;
+        this.badItemChance = (cfg.badItemChance || 20) / 100;
+
+        // Available items
+        this.goodItemDefs = ITEM_DEFS.filter(d => d.good).slice(0, Math.max(2, this.itemVariety - 1));
+        this.badItemDefs = ITEM_DEFS.filter(d => !d.good).slice(0, Math.max(1, this.itemVariety - this.goodItemDefs.length));
+
+        // Lives
+        this.lives = 3;
+        this.elapsed = 0;
+        this.combo = 0;
+        this.comboTimer = 0;
+
+        // Arena
+        this.arenaSize = 20;
+        this.spawnHeight = 25;
+
+        // Build world
+        this.createSky(0x1a1a2e, 0x2c3e50, 0x1a1a2e, 30, 150);
+        this.createGroundPlane(0x2c3e50, 60);
+
+        // Arena boundary walls (visual only)
+        this.buildArena();
+
+        // Items
+        this.items3D = [];
+        this.spawnTimer = 0;
+        this.spawnInterval = 0.8;
+
+        // Catch flash sprites (3D text billboards)
+        this.flashTexts = [];
+
+        // HUD
+        this.createHUD();
+        this.createLivesDisplay();
+    }
+
+    buildArena() {
+        const half = this.arenaSize;
+
+        // Corner posts
+        const postGeo = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x666688, roughness: 0.5, metalness: 0.3 });
+        const corners = [[-half, -half], [-half, half], [half, -half], [half, half]];
+        for (const [cx, cz] of corners) {
+            const post = new THREE.Mesh(postGeo, postMat);
+            post.position.set(cx, 1.5, cz);
+            post.castShadow = true;
+            this.scene.add(post);
+        }
+
+        // Edge lines (glowing bars on ground)
+        const edgeMat = new THREE.MeshStandardMaterial({
+            color: 0x4488ff,
+            emissive: 0x2244aa,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.6,
+        });
+        const edgeGeoX = new THREE.BoxGeometry(this.arenaSize * 2, 0.1, 0.2);
+        const edgeGeoZ = new THREE.BoxGeometry(0.2, 0.1, this.arenaSize * 2);
+
+        const edges = [
+            { geo: edgeGeoX, pos: [0, 0.05, -half] },
+            { geo: edgeGeoX, pos: [0, 0.05, half] },
+            { geo: edgeGeoZ, pos: [-half, 0.05, 0] },
+            { geo: edgeGeoZ, pos: [half, 0.05, 0] },
+        ];
+        for (const e of edges) {
+            const mesh = new THREE.Mesh(e.geo, edgeMat);
+            mesh.position.set(...e.pos);
+            this.scene.add(mesh);
+        }
+
+        // Grid pattern on ground
+        const gridMat = new THREE.MeshStandardMaterial({
+            color: 0x334455,
+            transparent: true,
+            opacity: 0.3,
+        });
+        const lineGeo = new THREE.BoxGeometry(this.arenaSize * 2, 0.02, 0.05);
+        for (let i = -half + 5; i <= half - 5; i += 5) {
+            const lineX = new THREE.Mesh(lineGeo, gridMat);
+            lineX.position.set(0, 0.01, i);
+            this.scene.add(lineX);
+
+            const lineZ = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, this.arenaSize * 2), gridMat);
+            lineZ.position.set(i, 0.01, 0);
+            this.scene.add(lineZ);
+        }
+    }
+
+    spawnItem3D() {
+        const isBad = this.rng() < this.badItemChance;
+        const pool = isBad ? this.badItemDefs : this.goodItemDefs;
+        const def = pool[Math.floor(this.rng() * pool.length)];
+
+        const half = this.arenaSize - 2;
+        const x = (this.rng() - 0.5) * 2 * half;
+        const z = (this.rng() - 0.5) * 2 * half;
+        const speedMult = 1 + this.elapsed / 60;
+        const speed = this.baseItemSpeed * speedMult * (0.8 + this.rng() * 0.4);
+
+        let mesh;
+        if (def.type === 'coin') {
+            // Gold cylinder
+            const geo = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 12);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xffcc00,
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.3,
+                roughness: 0.2,
+                metalness: 0.8,
+            });
+            mesh = new THREE.Mesh(geo, mat);
+        } else if (def.type === 'gem') {
+            // Blue octahedron
+            const geo = new THREE.OctahedronGeometry(0.5, 0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x33ccff,
+                emissive: 0x1188cc,
+                emissiveIntensity: 0.3,
+                roughness: 0.1,
+                metalness: 0.6,
+            });
+            mesh = new THREE.Mesh(geo, mat);
+        } else if (def.type === 'star') {
+            // Yellow star - use icosahedron as approximation
+            const geo = new THREE.IcosahedronGeometry(0.5, 0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xffff66,
+                emissive: 0xffff00,
+                emissiveIntensity: 0.4,
+                roughness: 0.2,
+                metalness: 0.5,
+            });
+            mesh = new THREE.Mesh(geo, mat);
+        } else if (def.type === 'bomb') {
+            // Red spiked sphere
+            const geo = new THREE.SphereGeometry(0.5, 8, 8);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xff2222,
+                emissive: 0xaa0000,
+                emissiveIntensity: 0.3,
+                roughness: 0.5,
+            });
+            mesh = new THREE.Mesh(geo, mat);
+            // Add spike
+            const spikeGeo = new THREE.ConeGeometry(0.15, 0.4, 4);
+            const spikeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+            for (let s = 0; s < 6; s++) {
+                const spike = new THREE.Mesh(spikeGeo, spikeMat);
+                const ang = (s / 6) * Math.PI * 2;
+                spike.position.set(Math.cos(ang) * 0.45, Math.sin(ang) * 0.45, 0);
+                spike.rotation.z = ang - Math.PI / 2;
+                mesh.add(spike);
+            }
+        } else {
+            // Skull (purple sphere with markings)
+            const geo = new THREE.SphereGeometry(0.5, 8, 8);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xcc44cc,
+                emissive: 0x660066,
+                emissiveIntensity: 0.2,
+                roughness: 0.6,
+            });
+            mesh = new THREE.Mesh(geo, mat);
+            // Eye sockets
+            const eyeGeo = new THREE.SphereGeometry(0.12, 6, 6);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x110011, roughness: 0.9 });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.18, 0.1, 0.4);
+            mesh.add(leftEye);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.18, 0.1, 0.4);
+            mesh.add(rightEye);
+        }
+
+        // Glow ring
+        const glowGeo = new THREE.TorusGeometry(0.7, 0.05, 6, 16);
+        const glowColor = def.good ? 0x44ff44 : 0xff4444;
+        const glowMat = new THREE.MeshStandardMaterial({
+            color: glowColor,
+            emissive: glowColor,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.4,
+        });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        glow.rotation.x = Math.PI / 2;
+        mesh.add(glow);
+
+        mesh.position.set(x, this.spawnHeight, z);
+        mesh.castShadow = true;
+        this.scene.add(mesh);
+
+        this.items3D.push({
+            mesh,
+            def,
+            speed,
+            rotSpeed: (this.rng() - 0.5) * 4,
+        });
+    }
+
+    update(dt) {
+        if (this.gameOver) return;
+
+        this.elapsed += dt;
+
+        // Spawn items
+        const currentInterval = Math.max(0.2, this.spawnInterval - this.elapsed / 120);
+        this.spawnTimer -= dt;
+        if (this.spawnTimer <= 0) {
+            this.spawnTimer = currentInterval;
+            this.spawnItem3D();
+        }
+
+        // Combo timer
+        if (this.comboTimer > 0) {
+            this.comboTimer -= dt;
+            if (this.comboTimer <= 0) this.combo = 0;
+        }
+
+        // Arena bounds for player
+        const half = this.arenaSize;
+        this.playerPosition.x = Math.max(-half, Math.min(half, this.playerPosition.x));
+        this.playerPosition.z = Math.max(-half, Math.min(half, this.playerPosition.z));
+
+        // Update items
+        for (let i = this.items3D.length - 1; i >= 0; i--) {
+            const item = this.items3D[i];
+            item.mesh.position.y -= item.speed * dt;
+            item.mesh.rotation.y += item.rotSpeed * dt;
+            item.mesh.rotation.x += item.rotSpeed * 0.5 * dt;
+
+            // Check collision with player
+            const dx = item.mesh.position.x - this.playerPosition.x;
+            const dy = item.mesh.position.y - (this.playerPosition.y + this.playerHeight * 0.5);
+            const dz = item.mesh.position.z - this.playerPosition.z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (dist < 2.0) {
+                // Caught!
+                if (item.def.good) {
+                    this.combo++;
+                    this.comboTimer = 2;
+                    const comboMult = Math.min(5, this.combo);
+                    this.score += item.def.points * comboMult;
+                } else {
+                    this.combo = 0;
+                    if (item.def.loseLife) {
+                        this.lives--;
+                        this.updateLivesDisplay();
+                        if (this.lives <= 0) {
+                            this.scene.remove(item.mesh);
+                            this.items3D.splice(i, 1);
+                            this.endGame();
+                            return;
+                        }
+                    } else {
+                        this.score = Math.max(0, this.score + item.def.points);
+                    }
+                }
+                this.scene.remove(item.mesh);
+                this.items3D.splice(i, 1);
+                continue;
+            }
+
+            // Fell below ground
+            if (item.mesh.position.y < -2) {
+                if (item.def.good) this.combo = 0;
+                this.scene.remove(item.mesh);
+                this.items3D.splice(i, 1);
+            }
+        }
+
+        // Update HUD
+        this.updateHUDScore(this.score);
+        const speedPercent = Math.floor((1 + this.elapsed / 60) * 100);
+        let infoText = `Speed: ${speedPercent}%`;
+        if (this.combo > 1 && this.comboTimer > 0) {
+            infoText += `  Combo x${Math.min(5, this.combo)}`;
+        }
+        if (this.hudInfoEl) {
+            this.hudInfoEl.textContent = infoText;
+        }
+    }
+
+    createLivesDisplay() {
+        if (!this.hudEl) return;
+        this.livesEl = document.createElement('div');
+        this.livesEl.style.cssText = 'position:absolute;top:8px;right:12px;color:#ff6666;font:bold 18px monospace;';
+        this.livesEl.textContent = '\u2665'.repeat(this.lives);
+        this.hudEl.appendChild(this.livesEl);
+    }
+
+    updateLivesDisplay() {
+        if (this.livesEl) {
+            this.livesEl.textContent = '\u2665'.repeat(Math.max(0, this.lives));
+        }
+    }
+}
+
 // ── Variation Generator ─────────────────────────────────────────────────
 function generateVariations() {
     const variations = [];
@@ -443,11 +764,13 @@ function generateVariations() {
         for (const itemVariety of itemVarieties) {
             for (const badItemChance of badItemChances) {
                 for (const theme of themes) {
-                    // Alternate player speeds to keep variation count manageable
                     const playerSpeed = playerSpeeds[seed % playerSpeeds.length];
+                    const is3D = seed % 2 === 0;
+                    const name = generateGameName('Catch', seed);
                     variations.push({
-                        name: generateGameName('Catch', seed),
+                        name: name + (is3D ? ' 3D' : ''),
                         category: 'Catch',
+                        is3D,
                         config: {
                             itemSpeed,
                             itemVariety,
@@ -455,6 +778,7 @@ function generateVariations() {
                             badItemChance,
                             theme,
                             seed,
+                            name: name + (is3D ? ' 3D' : ''),
                         },
                         thumbnail: generateThumbnail('Catch', { theme }, seed),
                     });
@@ -472,4 +796,4 @@ function generateVariations() {
 }
 
 // ── Registration ────────────────────────────────────────────────────────
-GameRegistry.registerTemplate('Catch', CatchGame, generateVariations);
+GameRegistry.registerTemplate3D('Catch', CatchGame, CatchGame3D, generateVariations);

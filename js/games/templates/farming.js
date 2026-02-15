@@ -1,8 +1,10 @@
 import { BaseGame } from '../base-game.js';
+import { BaseGame3D, mulberry32 as mulberry32_3d } from '../base-game-3d.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
 import { drawCharacter } from '../character.js';
+import * as THREE from 'three';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -607,6 +609,606 @@ class FarmingGame extends BaseGame {
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// 3D FarmingGame — Farm plot management in 3D
+// ══════════════════════════════════════════════════════════════════════════
+class FarmingGame3D extends BaseGame3D {
+    async init() {
+        const cfg = this.config;
+        this.theme = cfg.theme;
+        this.rng = mulberry32_3d(cfg.seed || 1);
+
+        // Grid size
+        const sizeMap = { '3x3': 3, '4x4': 4, '5x5': 5 };
+        this.gridSize = sizeMap[cfg.plotCount] || 4;
+
+        // Crop types
+        const cropCount = cfg.cropTypes || 4;
+        this.crops = CROP_DEFS.slice(0, cropCount);
+
+        // Grow speed
+        const growMap = { slow: 0.7, medium: 1.0, fast: 1.5 };
+        this.growSpeed = growMap[cfg.growSpeed] || 1.0;
+
+        // Timer
+        this.timeLimit = cfg.timeLimit || 90;
+        this.timeLeft = this.timeLimit;
+
+        // Currency
+        this.currency = 30;
+        this.totalEarned = 0;
+
+        // Tool selection
+        this.selectedTool = 0; // 0=plant, 1=water, 2=harvest
+        this.selectedCropIndex = 0;
+
+        // Plot spacing
+        this.plotSize = 2.5;
+        this.plotGap = 0.3;
+        this.plotStep = this.plotSize + this.plotGap;
+        this.gridOffset = -(this.gridSize * this.plotStep) / 2 + this.plotStep / 2;
+
+        // Build world
+        this.createSky(0x87ceeb, 0xe0f7fa, 0xaaccaa, 40, 150);
+        this.createGroundPlane(0x5a8a3a, 100);
+
+        // Build farm
+        this.buildFarmPlots();
+        this.buildFence();
+        this.buildBarn();
+        this.buildEnvironment();
+
+        // Place player near center
+        this.playerPosition.set(0, 0, this.gridSize * this.plotStep / 2 + 2);
+        this.moveSpeed = 6;
+
+        // Camera: slightly overhead for farm view
+        this.cameraAngleY = 0.6;
+        this.cameraDistance = 12;
+
+        // Nearest plot tracking
+        this.nearestPlot = null;
+        this.nearestPlotDist = Infinity;
+
+        // HUD
+        this.createHUD();
+        this.createFarmHUD();
+    }
+
+    buildFarmPlots() {
+        this.plots3D = [];
+
+        const soilMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.95, metalness: 0.0 });
+        const soilGeo = new THREE.BoxGeometry(this.plotSize, 0.15, this.plotSize);
+
+        for (let r = 0; r < this.gridSize; r++) {
+            for (let c = 0; c < this.gridSize; c++) {
+                const x = this.gridOffset + c * this.plotStep;
+                const z = this.gridOffset + r * this.plotStep;
+
+                // Soil block
+                const soil = new THREE.Mesh(soilGeo, soilMat.clone());
+                soil.position.set(x, 0.075, z);
+                soil.receiveShadow = true;
+                soil.castShadow = true;
+                this.scene.add(soil);
+
+                // Soil furrow lines
+                const furrowGeo = new THREE.BoxGeometry(this.plotSize - 0.2, 0.02, 0.06);
+                const furrowMat = new THREE.MeshStandardMaterial({ color: 0x4a2a10, roughness: 0.95 });
+                for (let f = 0; f < 3; f++) {
+                    const furrow = new THREE.Mesh(furrowGeo, furrowMat);
+                    furrow.position.set(x, 0.16, z - 0.6 + f * 0.6);
+                    this.scene.add(furrow);
+                }
+
+                // Highlight ring (shown when nearby)
+                const ringGeo = new THREE.TorusGeometry(this.plotSize * 0.55, 0.04, 6, 24);
+                const ringMat = new THREE.MeshStandardMaterial({
+                    color: 0x44ff44,
+                    emissive: 0x22aa22,
+                    emissiveIntensity: 0.5,
+                    transparent: true,
+                    opacity: 0,
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(x, 0.2, z);
+                this.scene.add(ring);
+
+                // Crop visual group (populated when planted)
+                const cropGroup = new THREE.Group();
+                cropGroup.position.set(x, 0.15, z);
+                this.scene.add(cropGroup);
+
+                // Water indicator
+                const waterGeo = new THREE.PlaneGeometry(this.plotSize - 0.2, this.plotSize - 0.2);
+                const waterMat = new THREE.MeshStandardMaterial({
+                    color: 0x4488ff,
+                    transparent: true,
+                    opacity: 0,
+                    side: THREE.DoubleSide,
+                });
+                const waterOverlay = new THREE.Mesh(waterGeo, waterMat);
+                waterOverlay.rotation.x = -Math.PI / 2;
+                waterOverlay.position.set(x, 0.17, z);
+                this.scene.add(waterOverlay);
+
+                this.plots3D.push({
+                    row: r,
+                    col: c,
+                    x, z,
+                    soilMesh: soil,
+                    ringMesh: ring,
+                    cropGroup,
+                    waterOverlay,
+                    crop: null,
+                    lastStage: -1,
+                });
+            }
+        }
+    }
+
+    buildFence() {
+        const fenceMat = new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.85 });
+        const half = (this.gridSize * this.plotStep) / 2 + 1.5;
+        const postGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.2, 6);
+        const railGeo = new THREE.BoxGeometry(0.06, 0.06, 1);
+
+        // Build fence along 4 sides
+        const sides = [
+            { start: [-half, -half], end: [half, -half], axis: 'x' },
+            { start: [-half, half], end: [half, half], axis: 'x' },
+            { start: [-half, -half], end: [-half, half], axis: 'z' },
+            { start: [half, -half], end: [half, half], axis: 'z' },
+        ];
+
+        for (const side of sides) {
+            const dx = side.end[0] - side.start[0];
+            const dz = side.end[1] - side.start[1];
+            const length = Math.sqrt(dx * dx + dz * dz);
+            const postCount = Math.floor(length / 2) + 1;
+
+            for (let i = 0; i < postCount; i++) {
+                const t = i / (postCount - 1);
+                const px = side.start[0] + dx * t;
+                const pz = side.start[1] + dz * t;
+
+                const post = new THREE.Mesh(postGeo, fenceMat);
+                post.position.set(px, 0.6, pz);
+                post.castShadow = true;
+                this.scene.add(post);
+            }
+
+            // Horizontal rails
+            const angle = Math.atan2(dz, dx);
+            for (const railY of [0.4, 0.8]) {
+                const rail = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.06, 0.06, length),
+                    fenceMat
+                );
+                rail.position.set(
+                    (side.start[0] + side.end[0]) / 2,
+                    railY,
+                    (side.start[1] + side.end[1]) / 2
+                );
+                rail.rotation.y = angle;
+                this.scene.add(rail);
+            }
+        }
+
+        // Gate opening on one side
+        // (We leave a gap in the +z fence - already looks fine with the fence as is)
+    }
+
+    buildBarn() {
+        const barnX = (this.gridSize * this.plotStep) / 2 + 6;
+        const barnZ = 0;
+
+        // Barn body
+        const bodyGeo = new THREE.BoxGeometry(5, 4, 6);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8B2500, roughness: 0.8 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.set(barnX, 2, barnZ);
+        body.castShadow = true;
+        this.scene.add(body);
+
+        // Barn roof (triangular prism approximated with boxes)
+        const roofGeo = new THREE.BoxGeometry(5.5, 0.2, 6.5);
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x4a2a0a, roughness: 0.9 });
+        const roofLeft = new THREE.Mesh(roofGeo, roofMat);
+        roofLeft.position.set(barnX - 0.8, 4.6, barnZ);
+        roofLeft.rotation.z = 0.45;
+        roofLeft.castShadow = true;
+        this.scene.add(roofLeft);
+
+        const roofRight = new THREE.Mesh(roofGeo, roofMat);
+        roofRight.position.set(barnX + 0.8, 4.6, barnZ);
+        roofRight.rotation.z = -0.45;
+        roofRight.castShadow = true;
+        this.scene.add(roofRight);
+
+        // Barn door
+        const doorGeo = new THREE.BoxGeometry(1.5, 2.5, 0.1);
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x5a1a00, roughness: 0.85 });
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(barnX, 1.25, barnZ - 3.05);
+        this.scene.add(door);
+
+        // White trim
+        const trimMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.7 });
+        const trimGeo = new THREE.BoxGeometry(5.2, 0.15, 6.2);
+        const trim = new THREE.Mesh(trimGeo, trimMat);
+        trim.position.set(barnX, 4.0, barnZ);
+        this.scene.add(trim);
+    }
+
+    buildEnvironment() {
+        // Trees around perimeter
+        const treeGeo = new THREE.ConeGeometry(1.2, 3.5, 6);
+        const treeMat = new THREE.MeshStandardMaterial({ color: 0x2d6a4f, roughness: 0.8 });
+        const trunkGeo = new THREE.CylinderGeometry(0.15, 0.2, 1.5, 6);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3d2e, roughness: 0.9 });
+
+        for (let i = 0; i < 15; i++) {
+            const angle = this.rng() * Math.PI * 2;
+            const dist = 15 + this.rng() * 15;
+            const tx = Math.cos(angle) * dist;
+            const tz = Math.sin(angle) * dist;
+
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 0.75;
+            tree.add(trunk);
+            const foliage = new THREE.Mesh(treeGeo, treeMat);
+            foliage.position.y = 3;
+            foliage.castShadow = true;
+            tree.add(foliage);
+            tree.position.set(tx, 0, tz);
+            tree.scale.setScalar(0.7 + this.rng() * 0.6);
+            this.scene.add(tree);
+        }
+
+        // Path (lighter ground strip leading to farm)
+        const pathGeo = new THREE.PlaneGeometry(2, 15);
+        const pathMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.95 });
+        const path = new THREE.Mesh(pathGeo, pathMat);
+        path.rotation.x = -Math.PI / 2;
+        path.position.set(0, 0.02, (this.gridSize * this.plotStep) / 2 + 5);
+        this.scene.add(path);
+    }
+
+    buildCropVisual(plot) {
+        // Clear existing
+        while (plot.cropGroup.children.length > 0) {
+            plot.cropGroup.remove(plot.cropGroup.children[0]);
+        }
+
+        if (!plot.crop) return;
+
+        const def = this.crops[plot.crop.defIndex];
+        const stage = plot.crop.stage;
+
+        if (stage === 0) {
+            // Seed: small brown mound
+            const moundGeo = new THREE.SphereGeometry(0.15, 6, 6);
+            const moundMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.9 });
+            const mound = new THREE.Mesh(moundGeo, moundMat);
+            mound.scale.y = 0.5;
+            plot.cropGroup.add(mound);
+        } else if (stage === 1) {
+            // Sprout: small green stem
+            const stemGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.4, 6);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x55aa30, roughness: 0.7 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = 0.2;
+            plot.cropGroup.add(stem);
+
+            // Tiny leaf
+            const leafGeo = new THREE.SphereGeometry(0.1, 6, 4);
+            leafGeo.scale(1, 0.3, 1);
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x66bb44, roughness: 0.7 });
+            const leaf = new THREE.Mesh(leafGeo, leafMat);
+            leaf.position.set(0.08, 0.35, 0);
+            leaf.rotation.z = -0.5;
+            plot.cropGroup.add(leaf);
+        } else if (stage === 2) {
+            // Medium plant: taller stem with leaves
+            const stemGeo = new THREE.CylinderGeometry(0.04, 0.05, 0.8, 6);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x408020, roughness: 0.7 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = 0.4;
+            stem.castShadow = true;
+            plot.cropGroup.add(stem);
+
+            // Leaves
+            const leafGeo = new THREE.SphereGeometry(0.15, 6, 4);
+            leafGeo.scale(1.5, 0.3, 1);
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x66bb44, roughness: 0.7 });
+            for (let i = 0; i < 3; i++) {
+                const leaf = new THREE.Mesh(leafGeo.clone(), leafMat);
+                const angle = (i / 3) * Math.PI * 2;
+                leaf.position.set(Math.cos(angle) * 0.12, 0.6 + i * 0.1, Math.sin(angle) * 0.12);
+                leaf.rotation.z = angle * 0.3;
+                plot.cropGroup.add(leaf);
+            }
+        } else if (stage === 3) {
+            // Harvestable: full plant with colored fruit
+            const stemGeo = new THREE.CylinderGeometry(0.05, 0.06, 1.0, 6);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x408020, roughness: 0.7 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = 0.5;
+            stem.castShadow = true;
+            plot.cropGroup.add(stem);
+
+            // Leaves
+            const leafGeo = new THREE.SphereGeometry(0.18, 6, 4);
+            leafGeo.scale(1.5, 0.3, 1);
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x55aa30, roughness: 0.7 });
+            for (let i = 0; i < 4; i++) {
+                const leaf = new THREE.Mesh(leafGeo.clone(), leafMat);
+                const angle = (i / 4) * Math.PI * 2;
+                leaf.position.set(Math.cos(angle) * 0.15, 0.7, Math.sin(angle) * 0.15);
+                plot.cropGroup.add(leaf);
+            }
+
+            // Fruit
+            const fruitGeo = new THREE.SphereGeometry(0.2, 8, 8);
+            const fruitMat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(def.color),
+                emissive: new THREE.Color(def.color),
+                emissiveIntensity: 0.2,
+                roughness: 0.3,
+                metalness: 0.1,
+            });
+            const fruit = new THREE.Mesh(fruitGeo, fruitMat);
+            fruit.position.y = 1.1;
+            fruit.castShadow = true;
+            fruit.name = 'fruit';
+            plot.cropGroup.add(fruit);
+
+            // Glow ring around harvestable
+            const glowGeo = new THREE.TorusGeometry(0.4, 0.03, 6, 16);
+            const glowMat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(def.color),
+                emissive: new THREE.Color(def.color),
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.5,
+            });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            glow.rotation.x = -Math.PI / 2;
+            glow.position.y = 1.1;
+            glow.name = 'glow';
+            plot.cropGroup.add(glow);
+        }
+    }
+
+    onKeyDown(code) {
+        if (this.gameOver) return;
+
+        // Tool selection with number keys
+        if (code === 'Digit1') this.selectedTool = 0;
+        else if (code === 'Digit2') this.selectedTool = 1;
+        else if (code === 'Digit3') this.selectedTool = 2;
+
+        // Crop selection with Q/E (when plant tool selected)
+        if (this.selectedTool === 0) {
+            if (code === 'KeyQ') {
+                this.selectedCropIndex = Math.max(0, this.selectedCropIndex - 1);
+            } else if (code === 'KeyE') {
+                this.selectedCropIndex = Math.min(this.crops.length - 1, this.selectedCropIndex + 1);
+            }
+        }
+
+        // Interact with nearest plot on E or F
+        if (code === 'KeyF') {
+            this.interactWithNearestPlot();
+        }
+    }
+
+    onClick(e) {
+        if (this.gameOver) return;
+        this.interactWithNearestPlot();
+    }
+
+    interactWithNearestPlot() {
+        if (!this.nearestPlot || this.nearestPlotDist > 3.0) return;
+
+        const plot = this.nearestPlot;
+
+        switch (this.selectedTool) {
+            case 0: // Plant
+                if (!plot.crop) {
+                    const def = this.crops[this.selectedCropIndex];
+                    if (this.currency >= def.cost) {
+                        this.currency -= def.cost;
+                        plot.crop = {
+                            defIndex: this.selectedCropIndex,
+                            stage: 0,
+                            growth: 0,
+                            watered: false,
+                            waterTimer: 0,
+                        };
+                        plot.lastStage = -1;
+                        this.buildCropVisual(plot);
+                    }
+                }
+                break;
+
+            case 1: // Water
+                if (plot.crop && plot.crop.stage < 3) {
+                    plot.crop.watered = true;
+                    plot.crop.waterTimer = 5;
+                    plot.waterOverlay.material.opacity = 0.15;
+                }
+                break;
+
+            case 2: // Harvest
+                if (plot.crop && plot.crop.stage === 3) {
+                    const def = this.crops[plot.crop.defIndex];
+                    this.currency += def.value;
+                    this.totalEarned += def.value;
+                    this.score = this.totalEarned;
+                    plot.crop = null;
+                    plot.lastStage = -1;
+                    this.buildCropVisual(plot);
+                    plot.waterOverlay.material.opacity = 0;
+                }
+                break;
+        }
+    }
+
+    update(dt) {
+        if (this.gameOver) return;
+
+        // Timer
+        this.timeLeft -= dt;
+        if (this.timeLeft <= 0) {
+            this.timeLeft = 0;
+            this.score = this.totalEarned;
+            this.endGame();
+            return;
+        }
+
+        // Grow crops
+        for (const plot of this.plots3D) {
+            if (!plot.crop) continue;
+
+            const def = this.crops[plot.crop.defIndex];
+            const waterMult = plot.crop.watered ? 1.0 : 0.3;
+            plot.crop.growth += dt * this.growSpeed * waterMult;
+
+            // Water timer
+            if (plot.crop.watered) {
+                plot.crop.waterTimer -= dt;
+                if (plot.crop.waterTimer <= 0) {
+                    plot.crop.watered = false;
+                    plot.waterOverlay.material.opacity = 0;
+                }
+            }
+
+            // Stage update
+            const totalTime = def.growTime;
+            const progress = plot.crop.growth / totalTime;
+            let newStage;
+            if (progress >= 1.0) newStage = 3;
+            else if (progress >= 0.6) newStage = 2;
+            else if (progress >= 0.25) newStage = 1;
+            else newStage = 0;
+
+            if (newStage !== plot.crop.stage) {
+                plot.crop.stage = newStage;
+            }
+
+            // Rebuild visual if stage changed
+            if (plot.crop.stage !== plot.lastStage) {
+                plot.lastStage = plot.crop.stage;
+                this.buildCropVisual(plot);
+            }
+
+            // Animate harvestable fruit bob
+            if (plot.crop.stage === 3) {
+                const fruit = plot.cropGroup.getObjectByName('fruit');
+                if (fruit) {
+                    fruit.position.y = 1.1 + Math.sin(performance.now() * 0.003) * 0.05;
+                }
+                const glow = plot.cropGroup.getObjectByName('glow');
+                if (glow) {
+                    glow.material.opacity = 0.3 + Math.sin(performance.now() * 0.004) * 0.2;
+                }
+            }
+        }
+
+        // Find nearest plot
+        this.nearestPlotDist = Infinity;
+        this.nearestPlot = null;
+        for (const plot of this.plots3D) {
+            const dx = this.playerPosition.x - plot.x;
+            const dz = this.playerPosition.z - plot.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < this.nearestPlotDist) {
+                this.nearestPlotDist = dist;
+                this.nearestPlot = plot;
+            }
+        }
+
+        // Highlight nearest plot
+        for (const plot of this.plots3D) {
+            const isNearest = plot === this.nearestPlot && this.nearestPlotDist < 3.0;
+            plot.ringMesh.material.opacity = isNearest ? 0.6 : 0;
+        }
+
+        // Update HUD
+        this.updateHUDScore(this.score);
+        this.updateFarmHUD();
+    }
+
+    createFarmHUD() {
+        if (!this.hudEl) return;
+
+        // Currency display
+        this.currencyEl = document.createElement('div');
+        this.currencyEl.style.cssText = 'position:absolute;top:8px;right:12px;color:#ffd700;font:bold 18px monospace;';
+        this.hudEl.appendChild(this.currencyEl);
+
+        // Timer display
+        this.timerEl = document.createElement('div');
+        this.timerEl.style.cssText = 'position:absolute;top:32px;right:12px;color:#ffffff;font:bold 16px monospace;';
+        this.hudEl.appendChild(this.timerEl);
+
+        // Tool display
+        this.toolEl = document.createElement('div');
+        this.toolEl.style.cssText = 'position:absolute;bottom:12px;left:12px;color:#ffffff;font:14px monospace;background:rgba(0,0,0,0.5);padding:6px 10px;border-radius:6px;';
+        this.hudEl.appendChild(this.toolEl);
+
+        // Interaction hint
+        this.hintEl = document.createElement('div');
+        this.hintEl.style.cssText = 'position:absolute;bottom:12px;left:50%;transform:translateX(-50%);color:#ffffff;font:13px monospace;background:rgba(0,0,0,0.5);padding:4px 10px;border-radius:6px;';
+        this.hudEl.appendChild(this.hintEl);
+    }
+
+    updateFarmHUD() {
+        if (this.currencyEl) {
+            this.currencyEl.textContent = `$${this.currency}  (Earned: $${this.totalEarned})`;
+        }
+        if (this.timerEl) {
+            const timeColor = this.timeLeft > 20 ? '#ffffff' : '#ff4444';
+            this.timerEl.style.color = timeColor;
+            this.timerEl.textContent = `${Math.ceil(this.timeLeft)}s`;
+        }
+        if (this.toolEl) {
+            const toolNames = ['Plant', 'Water', 'Harvest'];
+            let toolText = `[1/2/3] Tool: ${toolNames[this.selectedTool]}`;
+            if (this.selectedTool === 0) {
+                const def = this.crops[this.selectedCropIndex];
+                toolText += ` | [Q/E] Crop: ${def.name} ($${def.cost})`;
+            }
+            this.toolEl.textContent = toolText;
+        }
+        if (this.hintEl) {
+            if (this.nearestPlot && this.nearestPlotDist < 3.0) {
+                const plot = this.nearestPlot;
+                if (!plot.crop && this.selectedTool === 0) {
+                    this.hintEl.textContent = 'Click or F to plant';
+                } else if (plot.crop && plot.crop.stage < 3 && this.selectedTool === 1) {
+                    this.hintEl.textContent = 'Click or F to water';
+                } else if (plot.crop && plot.crop.stage === 3 && this.selectedTool === 2) {
+                    this.hintEl.textContent = 'Click or F to harvest!';
+                } else if (plot.crop) {
+                    this.hintEl.textContent = `${STAGE_NAMES[plot.crop.stage]} - ${this.crops[plot.crop.defIndex].name}`;
+                } else {
+                    this.hintEl.textContent = 'Empty plot';
+                }
+                this.hintEl.style.display = 'block';
+            } else {
+                this.hintEl.textContent = 'Walk to a plot';
+                this.hintEl.style.display = 'block';
+            }
+        }
+    }
+}
+
 // ── Variation Generator ─────────────────────────────────────────────────
 function generateVariations() {
     const variations = [];
@@ -621,11 +1223,14 @@ function generateVariations() {
             for (const growSpeed of growSpeeds) {
                 const cropTypes = cropTypeCounts[seed % cropTypeCounts.length];
                 const timeLimit = timeLimits[seed % timeLimits.length];
+                const is3D = seed % 2 === 0;
+                const name = generateGameName('Farming', seed);
 
                 variations.push({
-                    name: generateGameName('Farming', seed),
+                    name: name + (is3D ? ' 3D' : ''),
                     category: 'Farming',
-                    config: { plotCount, cropTypes, growSpeed, timeLimit, theme, seed },
+                    is3D,
+                    config: { plotCount, cropTypes, growSpeed, timeLimit, theme, seed, name: name + (is3D ? ' 3D' : '') },
                     thumbnail: generateThumbnail('Farming', { theme }, seed)
                 });
                 seed++;
@@ -641,11 +1246,14 @@ function generateVariations() {
         const cropTypes = cropTypeCounts[(seed + 1) % cropTypeCounts.length];
         const growSpeed = growSpeeds[(seed + 2) % growSpeeds.length];
         const timeLimit = timeLimits[seed % timeLimits.length];
+        const is3D = seed % 2 === 0;
+        const name = generateGameName('Farming', seed);
 
         variations.push({
-            name: generateGameName('Farming', seed),
+            name: name + (is3D ? ' 3D' : ''),
             category: 'Farming',
-            config: { plotCount, cropTypes, growSpeed, timeLimit, theme, seed },
+            is3D,
+            config: { plotCount, cropTypes, growSpeed, timeLimit, theme, seed, name: name + (is3D ? ' 3D' : '') },
             thumbnail: generateThumbnail('Farming', { theme }, seed)
         });
         seed++;
@@ -655,4 +1263,4 @@ function generateVariations() {
 }
 
 // ── Registration ────────────────────────────────────────────────────────
-GameRegistry.registerTemplate('Farming', FarmingGame, generateVariations);
+GameRegistry.registerTemplate3D('Farming', FarmingGame, FarmingGame3D, generateVariations);
