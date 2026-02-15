@@ -62,6 +62,7 @@ export function renderGame(container, router, gameId) {
     }
 
     currentGameData = game;
+    const is3D = !!game.is3D;
 
     // Check if this game is in the user's favorites
     const user = Auth.currentUser();
@@ -79,9 +80,12 @@ export function renderGame(container, router, gameId) {
                 <span class="game-score" id="game-score">Score: 0</span>
             </div>
 
-            <!-- Canvas area -->
+            <!-- Canvas/3D area -->
             <div class="game-canvas-wrap" id="game-canvas-wrap">
-                <canvas id="game-canvas"></canvas>
+                ${is3D
+                    ? '<div id="game-3d-container" class="game-3d-container"></div>'
+                    : '<canvas id="game-canvas"></canvas>'
+                }
             </div>
 
             <!-- Bottom bar -->
@@ -124,6 +128,7 @@ export function renderGame(container, router, gameId) {
 
     // DOM refs
     const canvas = container.querySelector('#game-canvas');
+    const container3D = container.querySelector('#game-3d-container');
     const canvasWrap = container.querySelector('#game-canvas-wrap');
     const scoreEl = container.querySelector('#game-score');
     const backBtn = container.querySelector('#game-back');
@@ -135,19 +140,19 @@ export function renderGame(container, router, gameId) {
     const replayBtn = container.querySelector('#game-over-replay');
     const catalogBtn = container.querySelector('#game-over-catalog');
 
-    // ── Canvas sizing ───────────────────────────────────────────────────
+    // ── Canvas sizing (2D only) ─────────────────────────────────────────
     function sizeCanvas() {
+        if (!canvas) return;
         const rect = canvasWrap.getBoundingClientRect();
         canvas.width = Math.floor(rect.width);
         canvas.height = Math.floor(rect.height);
     }
 
-    sizeCanvas();
-
-    resizeHandler = () => {
+    if (!is3D) {
         sizeCanvas();
-    };
-    window.addEventListener('resize', resizeHandler);
+        resizeHandler = () => sizeCanvas();
+        window.addEventListener('resize', resizeHandler);
+    }
 
     // ── Start game ──────────────────────────────────────────────────────
     function startGame() {
@@ -155,16 +160,30 @@ export function renderGame(container, router, gameId) {
 
         if (currentGame) {
             currentGame.stop();
+            currentGame = null;
         }
 
-        sizeCanvas();
+        if (is3D) {
+            // Clear container for fresh 3D game
+            container3D.innerHTML = '';
 
-        try {
-            currentGame = GameRegistry.createGameInstance(game, canvas);
-        } catch (err) {
-            console.error('Failed to create game instance:', err);
-            showGameError(canvasWrap, 'Das Spiel konnte nicht geladen werden.');
-            return;
+            try {
+                currentGame = GameRegistry.createGameInstance(game, container3D);
+            } catch (err) {
+                console.error('Failed to create 3D game instance:', err);
+                showGameError(canvasWrap, 'Das 3D-Spiel konnte nicht geladen werden.');
+                return;
+            }
+        } else {
+            sizeCanvas();
+
+            try {
+                currentGame = GameRegistry.createGameInstance(game, canvas);
+            } catch (err) {
+                console.error('Failed to create game instance:', err);
+                showGameError(canvasWrap, 'Das Spiel konnte nicht geladen werden.');
+                return;
+            }
         }
 
         // Set game over callback
@@ -233,7 +252,9 @@ export function renderGame(container, router, gameId) {
     // Re-size canvas on fullscreen change
     function onFullscreenChange() {
         // Small delay to let the browser settle
-        setTimeout(() => sizeCanvas(), 100);
+        setTimeout(() => {
+            if (!is3D) sizeCanvas();
+        }, 100);
     }
     document.addEventListener('fullscreenchange', onFullscreenChange);
 

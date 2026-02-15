@@ -34,10 +34,18 @@ export const GameRegistry = {
         return this.getAllGames().find(g => g.id === parseInt(id));
     },
 
-    createGameInstance(game, canvas) {
+    createGameInstance(game, canvasOrContainer) {
         const tmpl = templates[game.templateName];
         if (!tmpl) throw new Error(`Template "${game.templateName}" not found`);
-        return new tmpl.class(canvas, game.config);
+        // For 3D games, use the 3D class if available; pass container div
+        if (game.is3D && tmpl.class3D) {
+            return new tmpl.class3D(canvasOrContainer, game.config);
+        }
+        return new tmpl.class(canvasOrContainer, game.config);
+    },
+
+    registerTemplate3D(name, templateClass2D, templateClass3D, variationGenerator) {
+        templates[name] = { class: templateClass2D, class3D: templateClass3D, generator: variationGenerator };
     },
 
     getCategories() {
