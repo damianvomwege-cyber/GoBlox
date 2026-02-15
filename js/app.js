@@ -12,6 +12,7 @@ import { renderFriends } from './pages/friends.js';
 import { renderLeaderboard } from './pages/leaderboard.js';
 import { renderSettings } from './pages/settings.js';
 import { renderStore } from './pages/store.js';
+import { renderCreate } from './pages/create.js';
 
 const router = new Router();
 const content = document.getElementById('content');
@@ -75,6 +76,13 @@ function cleanupGame() {
     }
 }
 
+function cleanupCreate() {
+    if (renderCreate._cleanup) {
+        renderCreate._cleanup();
+        renderCreate._cleanup = null;
+    }
+}
+
 // ── 404 Page ─────────────────────────────────────────────────────────
 function render404(container) {
     container.innerHTML = `
@@ -92,6 +100,7 @@ function render404(container) {
 router
     .on('/login', () => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         if (Auth.currentUser()) {
             router.navigate('#/home');
@@ -106,59 +115,82 @@ router
     })
     .on('/', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderHome(content, router);
     }))
     .on('/home', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderHome(content, router);
     }))
     .on('/games', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderCatalog(content, router);
     }))
     .on('/game', requireAuth((...params) => {
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderGame(content, router, ...params);
     }))
     .on('/profile', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderProfile(content, router);
     }))
     .on('/friends', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderFriends(content, router);
     }))
     .on('/leaderboard', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderLeaderboard(content, router);
     }))
     .on('/store', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderStore(content, router);
     }))
+    .on('/create', (...params) => {
+        if (!Auth.currentUser()) {
+            router.navigate('#/login');
+            return;
+        }
+        cleanupGame();
+        cleanupAvatars();
+        sidebar.classList.add('hidden');
+        cleanupSidebar();
+        sidebarRendered = false;
+        content.style.padding = '0';
+        renderCreate(content, router, ...params);
+    })
     .on('/settings', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         renderSettings(content, router);
     }))
     .on('*', requireAuth(() => {
         cleanupGame();
+        cleanupCreate();
         cleanupAvatars();
         content.style.padding = '2rem';
         render404(content);

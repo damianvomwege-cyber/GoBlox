@@ -25,6 +25,7 @@ import './templates/simon.js';
 import './templates/asteroid.js';
 import './templates/bubble.js';
 import './templates/catch.js';
+import './templates/custom.js';
 
 import { GameRegistry } from './registry.js';
 
