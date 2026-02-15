@@ -1,0 +1,293 @@
+/* ===========================
+   Home Dashboard
+   =========================== */
+
+.home-page {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ── Welcome Banner ── */
+
+.home-banner {
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.25), rgba(233, 69, 96, 0.2));
+    border-radius: var(--border-radius);
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(108, 99, 255, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.home-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(108, 99, 255, 0.15), transparent 70%);
+    pointer-events: none;
+}
+
+.home-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.home-banner-text h1 {
+    font-size: 1.8rem;
+}
+
+.home-banner-text p {
+    font-size: 1rem;
+}
+
+.home-banner-avatar canvas {
+    display: block;
+    image-rendering: auto;
+}
+
+/* ── Sections ── */
+
+.home-section {
+    margin-bottom: 2rem;
+}
+
+.home-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.home-section-header h2 {
+    font-size: 1.4rem;
+}
+
+.home-see-all {
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+    transition: opacity var(--transition-fast);
+}
+
+.home-see-all:hover {
+    opacity: 0.8;
+}
+
+/* ── Horizontal Scroll Row ── */
+
+.home-scroll-row {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+
+.home-scroll-row::-webkit-scrollbar {
+    height: 6px;
+}
+
+.home-scroll-row::-webkit-scrollbar-thumb {
+    background: rgba(108, 99, 255, 0.3);
+    border-radius: 3px;
+}
+
+/* ── Game Cards (in scroll rows) ── */
+
+.home-game-card {
+    flex-shrink: 0;
+    width: 160px;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    scroll-snap-align: start;
+}
+
+.home-game-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.home-game-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+
+.home-game-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--transition-fast);
+}
+
+.home-game-card:hover .home-game-thumb img {
+    transform: scale(1.05);
+}
+
+.home-game-name {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Category Grid ── */
+
+.home-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.home-cat-card {
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.home-cat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.home-cat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.home-cat-card:hover::before {
+    opacity: 1;
+}
+
+.home-cat-name {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.home-cat-count {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.8);
+    position: relative;
+    z-index: 1;
+    margin-top: 0.15rem;
+}
+
+/* ── Empty Row ── */
+
+.home-empty-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: center;
+}
+
+/* ── Quick Stats ── */
+
+.home-quick-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.home-quick-stat {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform var(--transition-fast);
+}
+
+.home-quick-stat:hover {
+    transform: translateY(-3px);
+}
+
+.home-quick-stat-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.home-quick-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.2rem;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 900px) {
+    .home-cat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .home-banner-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .home-banner-text h1 {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .home-cat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .home-quick-stats {
+        flex-direction: column;
+    }
+
+    .home-banner {
+        padding: 1.5rem;
+    }
+
+    .home-game-card {
+        width: 130px;
+    }
+}
+
+@media (max-width: 400px) {
+    .home-cat-grid {
+        grid-template-columns: 1fr;
+    }
+}

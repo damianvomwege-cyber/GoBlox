@@ -5,6 +5,11 @@ import { renderSidebar, updateSidebarActive } from './components/sidebar.js';
 import { GameRegistry } from './games/loader.js';
 import { renderCatalog } from './pages/catalog.js';
 import { renderGame } from './pages/game.js';
+import { renderHome } from './pages/home.js';
+import { renderProfile } from './pages/profile.js';
+import { renderFriends } from './pages/friends.js';
+import { renderLeaderboard } from './pages/leaderboard.js';
+import { renderSettings } from './pages/settings.js';
 
 const router = new Router();
 const content = document.getElementById('content');
@@ -39,43 +44,6 @@ function cleanupGame() {
     }
 }
 
-function showHome() {
-    const user = Auth.currentUser();
-    const totalGames = GameRegistry.getAllGames().length;
-    content.innerHTML = `
-        <div class="animate-fade-in">
-            <h1>Willkommen, <span class="text-gradient">${user.name}</span>!</h1>
-            <p class="text-secondary mt-2">Entdecke ${totalGames.toLocaleString('de-DE')} Spiele und spiele direkt los.</p>
-            <div class="mt-4">
-                <a href="#/games" class="btn btn-lg">Spiele entdecken</a>
-            </div>
-            ${user.gamesPlayed ? `
-                <div class="mt-4" style="display:flex;gap:2rem;flex-wrap:wrap;">
-                    <div class="card" style="min-width:160px;">
-                        <div class="text-secondary" style="font-size:0.85rem;">Gespielt</div>
-                        <div style="font-size:1.8rem;font-weight:800;">${user.gamesPlayed}</div>
-                    </div>
-                    <div class="card" style="min-width:160px;">
-                        <div class="text-secondary" style="font-size:0.85rem;">Gesamtpunkte</div>
-                        <div style="font-size:1.8rem;font-weight:800;">${(user.totalScore || 0).toLocaleString('de-DE')}</div>
-                    </div>
-                </div>
-            ` : ''}
-        </div>
-    `;
-}
-
-function showPlaceholder(title) {
-    return () => {
-        content.innerHTML = `
-            <div class="animate-fade-in">
-                <h1>${title}</h1>
-                <p class="text-secondary mt-2">Diese Seite wird bald erstellt.</p>
-            </div>
-        `;
-    };
-}
-
 router
     .on('/login', () => {
         cleanupGame();
@@ -91,12 +59,12 @@ router
     .on('/', requireAuth(() => {
         cleanupGame();
         content.style.padding = '2rem';
-        showHome();
+        renderHome(content, router);
     }))
     .on('/home', requireAuth(() => {
         cleanupGame();
         content.style.padding = '2rem';
-        showHome();
+        renderHome(content, router);
     }))
     .on('/games', requireAuth(() => {
         cleanupGame();
@@ -110,22 +78,22 @@ router
     .on('/profile', requireAuth(() => {
         cleanupGame();
         content.style.padding = '2rem';
-        showPlaceholder('Profil')();
+        renderProfile(content, router);
     }))
     .on('/friends', requireAuth(() => {
         cleanupGame();
         content.style.padding = '2rem';
-        showPlaceholder('Freunde')();
+        renderFriends(content, router);
     }))
     .on('/leaderboard', requireAuth(() => {
         cleanupGame();
         content.style.padding = '2rem';
-        showPlaceholder('Rangliste')();
+        renderLeaderboard(content, router);
     }))
     .on('/settings', requireAuth(() => {
         cleanupGame();
         content.style.padding = '2rem';
-        showPlaceholder('Einstellungen')();
+        renderSettings(content, router);
     }))
     .resolve();
 
