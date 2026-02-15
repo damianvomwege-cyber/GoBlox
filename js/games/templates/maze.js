@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -120,6 +121,7 @@ class MazeGame extends BaseGame {
         // Player position (grid coords)
         this.playerX = 0;
         this.playerY = 0;
+        this.playerDirection = 'right';
 
         // Exit position
         this.exitX = this.mazeW - 1;
@@ -160,6 +162,12 @@ class MazeGame extends BaseGame {
             this.playerX += dx;
             this.playerY += dy;
             this.visited.add(`${this.playerX},${this.playerY}`);
+
+            // Track direction for character facing
+            if (dx === 1) this.playerDirection = 'right';
+            else if (dx === -1) this.playerDirection = 'left';
+            else if (dy === 1) this.playerDirection = 'down';
+            else if (dy === -1) this.playerDirection = 'up';
 
             // Check win
             if (this.playerX === this.exitX && this.playerY === this.exitY) {
@@ -361,23 +369,9 @@ class MazeGame extends BaseGame {
         const px = this.offsetX + this.playerX * cs + cs / 2;
         const py = this.offsetY + this.playerY * cs + cs / 2;
 
-        // Player glow
-        ctx.fillStyle = t.player + '30';
-        ctx.beginPath();
-        ctx.arc(px, py, cs * 0.45, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Player circle
-        ctx.fillStyle = t.player;
-        ctx.beginPath();
-        ctx.arc(px, py, cs * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Player shine
-        ctx.fillStyle = '#ffffff40';
-        ctx.beginPath();
-        ctx.arc(px - cs * 0.08, py - cs * 0.08, cs * 0.1, 0, Math.PI * 2);
-        ctx.fill();
+        // Character with torch
+        const charSize = cs * 0.85;
+        drawCharacter(ctx, px, py, charSize, this.playerDirection, 'torch', this.elapsed * 3);
 
         // Particles
         for (const p of this.particles) {

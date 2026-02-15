@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -297,6 +298,10 @@ class RacingGame extends BaseGame {
         ctx.beginPath();
         ctx.arc(px + this.carWidth * 0.78, py + 4, hlSize, 0, Math.PI * 2);
         ctx.fill();
+
+        // Tiny character in the car with helmet
+        const charSize = this.carHeight * 0.35;
+        drawCharacter(ctx, this.playerX, py + this.carHeight * 0.38, charSize, 'down', 'helmet', 0);
 
         // Particles
         for (const p of this.particles) {

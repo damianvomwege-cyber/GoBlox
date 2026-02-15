@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -397,6 +398,12 @@ class FishingGame extends BaseGame {
             else ctx.lineTo(x, wy);
         }
         ctx.stroke();
+
+        // Fisherman character
+        const fishermanX = this.rodTipX - 70;
+        const fishermanY = this.waterY - 5;
+        const fishermanSize = 45;
+        drawCharacter(ctx, fishermanX, fishermanY, fishermanSize, 'right', 'rod', 0);
 
         // Rod
         ctx.strokeStyle = '#8B4513';

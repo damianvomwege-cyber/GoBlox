@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -44,8 +45,10 @@ class PlatformerGame extends BaseGame {
         const H = this.canvas.height;
 
         // Player
-        this.playerW = 30;
-        this.playerH = 30;
+        this.playerW = 24;
+        this.playerH = 36;
+        this.playerDirection = 'right';
+        this.walkAnim = 0;
         this.playerX = W * 0.2;
         this.playerY = H - 80;
         this.playerVY = 0;
@@ -169,6 +172,11 @@ class PlatformerGame extends BaseGame {
             if (p.life <= 0) this.particles.splice(i, 1);
         }
 
+        // Walk animation
+        if (this.isGrounded) {
+            this.walkAnim += dt * 6;
+        }
+
         // Fall off screen = game over
         if (this.playerY > H + 50) {
             this.endGame();
@@ -239,24 +247,9 @@ class PlatformerGame extends BaseGame {
 
         // Draw player (world coords: playerX is relative to camera)
         const worldPlayerX = this.playerX + this.cameraX;
-        ctx.fillStyle = t.primary;
-        ctx.fillRect(worldPlayerX, this.playerY, this.playerW, this.playerH);
-
-        // Player inner highlight
-        ctx.fillStyle = t.secondary;
-        ctx.fillRect(worldPlayerX + 4, this.playerY + 4, this.playerW - 8, this.playerH - 8);
-
-        // Eyes
-        ctx.fillStyle = t.bg;
-        ctx.fillRect(worldPlayerX + 7, this.playerY + 8, 5, 6);
-        ctx.fillRect(worldPlayerX + 18, this.playerY + 8, 5, 6);
-
-        // Pupils (shift based on velocity direction)
-        const pupilShiftX = 1;
-        const pupilShiftY = Math.min(2, Math.max(-2, this.playerVY * 0.005));
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(worldPlayerX + 9 + pupilShiftX, this.playerY + 10 + pupilShiftY, 2, 3);
-        ctx.fillRect(worldPlayerX + 20 + pupilShiftX, this.playerY + 10 + pupilShiftY, 2, 3);
+        const charCenterX = worldPlayerX + this.playerW / 2;
+        const charCenterY = this.playerY + this.playerH / 2;
+        drawCharacter(ctx, charCenterX, charCenterY, this.playerH, 'right', 'none', this.isGrounded ? this.walkAnim : 0);
 
         ctx.restore();
 

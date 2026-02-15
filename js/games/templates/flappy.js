@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -305,46 +306,17 @@ class FlappyGame extends BaseGame {
         }
         ctx.globalAlpha = 1;
 
-        // Bird
+        // Character with cape (replaces bird)
         ctx.save();
         ctx.translate(this.birdX, this.birdY);
-        ctx.rotate(this.birdRotation);
+        // Tilt based on velocity
+        const tiltAngle = Math.max(-0.4, Math.min(0.6, this.birdRotation * 0.5));
+        ctx.rotate(tiltAngle);
 
         const bs = this.birdSize;
-
-        // Body
-        ctx.fillStyle = t.primary;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, bs * 0.55, bs * 0.45, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Wing
-        const wingFlap = Math.sin(performance.now() * 0.012) * 0.3;
-        ctx.fillStyle = t.secondary;
-        ctx.beginPath();
-        ctx.ellipse(-bs * 0.15, bs * 0.05, bs * 0.3, bs * 0.18, wingFlap - 0.3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Eye (white)
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(bs * 0.2, -bs * 0.12, bs * 0.16, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Pupil
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(bs * 0.26, -bs * 0.1, bs * 0.08, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Beak
-        ctx.fillStyle = '#ff8c00';
-        ctx.beginPath();
-        ctx.moveTo(bs * 0.4, -bs * 0.05);
-        ctx.lineTo(bs * 0.7, bs * 0.05);
-        ctx.lineTo(bs * 0.4, bs * 0.12);
-        ctx.closePath();
-        ctx.fill();
+        const charSize = bs * 2;
+        const animFrame = performance.now() * 0.003;
+        drawCharacter(ctx, 0, 0, charSize, 'right', 'cape', animFrame);
 
         ctx.restore();
 

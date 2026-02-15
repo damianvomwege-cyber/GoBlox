@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -67,6 +68,7 @@ class ShooterGame extends BaseGame {
         // Mouse aim
         this.mouseX = W / 2;
         this.mouseY = 0;
+        this.walkAnim = 0;
 
         // Bullets
         this.bullets = [];
@@ -158,6 +160,7 @@ class ShooterGame extends BaseGame {
             dy /= len;
             this.playerX += dx * this.playerSpeed * dt;
             this.playerY += dy * this.playerSpeed * dt;
+            this.walkAnim += dt * 6;
         }
 
         // Clamp player to arena
@@ -415,23 +418,9 @@ class ShooterGame extends BaseGame {
                 ctx.setLineDash([]);
             }
 
-            // Player glow
-            ctx.fillStyle = t.primary + '20';
-            ctx.beginPath();
-            ctx.arc(this.playerX, this.playerY, this.playerSize * 1.5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Player body
-            ctx.fillStyle = t.primary;
-            ctx.beginPath();
-            ctx.arc(this.playerX, this.playerY, this.playerSize, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Inner circle
-            ctx.fillStyle = t.secondary;
-            ctx.beginPath();
-            ctx.arc(this.playerX, this.playerY, this.playerSize * 0.5, 0, Math.PI * 2);
-            ctx.fill();
+            // Character direction based on mouse
+            const charDir = this.mouseX >= this.playerX ? 'right' : 'left';
+            drawCharacter(ctx, this.playerX, this.playerY, this.playerSize * 2.2, charDir, 'pistol', this.walkAnim);
         }
 
         // Particles

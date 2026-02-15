@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -51,6 +52,8 @@ class SurvivalGame extends BaseGame {
             hp: 100,
             maxHp: 100,
             shieldTimer: 0,
+            direction: 'right',
+            walkAnim: 0,
         };
 
         // Camera
@@ -145,6 +148,13 @@ class SurvivalGame extends BaseGame {
             dy /= len;
             p.x += dx * p.speed * dt;
             p.y += dy * p.speed * dt;
+            p.walkAnim += dt * 6;
+            // Update facing direction
+            if (Math.abs(dx) > Math.abs(dy)) {
+                p.direction = dx > 0 ? 'right' : 'left';
+            } else {
+                p.direction = dy > 0 ? 'down' : 'up';
+            }
         }
 
         // Clamp player to map
@@ -376,34 +386,18 @@ class SurvivalGame extends BaseGame {
             ctx.strokeStyle = `rgba(100, 200, 255, ${alpha})`;
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius + 6, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.radius + 8, 0, Math.PI * 2);
             ctx.stroke();
         }
 
-        // Damage flash
+        // Damage flash (global alpha blink)
         if (this.damageCooldown > 0.3) {
-            ctx.fillStyle = '#ff6666';
-        } else {
-            ctx.fillStyle = t.primary;
+            ctx.globalAlpha = 0.5;
         }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
 
-        // Player inner
-        ctx.fillStyle = t.secondary + '80';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius * 0.55, 0, Math.PI * 2);
-        ctx.fill();
+        drawCharacter(ctx, p.x, p.y, p.radius * 2.8, p.direction, 'sword', p.walkAnim);
 
-        // Eyes on player
-        ctx.fillStyle = t.bg;
-        ctx.beginPath();
-        ctx.arc(p.x - 4, p.y - 3, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(p.x + 4, p.y - 3, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = 1;
 
         // Particles
         for (const pt of this.particles) {

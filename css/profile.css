@@ -48,6 +48,14 @@
     color: var(--text-primary);
 }
 
+.profile-standard-label {
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    letter-spacing: 0.03em;
+}
+
 /* ── Sections ── */
 
 .profile-section {

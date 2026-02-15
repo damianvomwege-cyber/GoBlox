@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -338,43 +339,9 @@ class CatchGame extends BaseGame {
             ctx.restore();
         }
 
-        // Player (basket/paddle)
-        const px = p.x - p.width / 2;
-        const py = p.y - p.height / 2;
-
-        // Basket shadow
-        ctx.fillStyle = '#00000030';
-        ctx.beginPath();
-        ctx.ellipse(p.x, p.y + p.height / 2 + 4, p.width / 2 + 4, 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Basket body (trapezoid)
-        ctx.fillStyle = t.primary;
-        ctx.beginPath();
-        ctx.moveTo(px - 4, py + p.height);
-        ctx.lineTo(px + 4, py);
-        ctx.lineTo(px + p.width - 4, py);
-        ctx.lineTo(px + p.width + 4, py + p.height);
-        ctx.closePath();
-        ctx.fill();
-
-        // Basket inner
-        ctx.fillStyle = t.bg + 'cc';
-        ctx.beginPath();
-        ctx.moveTo(px + 2, py + p.height - 2);
-        ctx.lineTo(px + 7, py + 3);
-        ctx.lineTo(px + p.width - 7, py + 3);
-        ctx.lineTo(px + p.width - 2, py + p.height - 2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Basket rim highlight
-        ctx.strokeStyle = t.secondary + '80';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(px + 4, py);
-        ctx.lineTo(px + p.width - 4, py);
-        ctx.stroke();
+        // Player character with basket
+        const charSize = 50;
+        drawCharacter(ctx, p.x, p.y - charSize * 0.2, charSize, 'down', 'basket', this.elapsed * 2);
 
         // Particles
         for (const pt of this.particles) {

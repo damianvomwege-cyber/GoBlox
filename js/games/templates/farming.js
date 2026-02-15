@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -444,6 +445,14 @@ class FarmingGame extends BaseGame {
             this.gridSize * cs + 2,
             this.gridSize * cs + 2
         );
+
+        // Farmer character standing beside the grid
+        const farmerX = this.gridOffsetX + this.gridSize * cs + 30;
+        const farmerY = this.gridOffsetY + this.gridSize * cs - 10;
+        const farmerItem = this.selectedTool === 0 ? 'hoe' : this.selectedTool === 1 ? 'basket' : 'hoe';
+        if (farmerX + 30 < W) {
+            drawCharacter(ctx, farmerX, farmerY, 50, 'left', farmerItem, 0);
+        }
 
         // Grid lines
         ctx.strokeStyle = t.grid + '60';

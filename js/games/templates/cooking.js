@@ -2,6 +2,7 @@ import { BaseGame } from '../base-game.js';
 import { GameRegistry } from '../registry.js';
 import { generateGameName } from '../name-generator.js';
 import { generateThumbnail } from '../thumbnail.js';
+import { drawCharacter } from '../character.js';
 
 // ── Seeded PRNG ─────────────────────────────────────────────────────────
 function mulberry32(seed) {
@@ -283,6 +284,11 @@ class CookingGame extends BaseGame {
         ctx.fillRect(0, H * 0.55, W, H * 0.45);
         ctx.fillStyle = t.counter + 'dd';
         ctx.fillRect(0, H * 0.55, W, 4);
+
+        // Chef character at the counter
+        const chefX = W - 45;
+        const chefY = H * 0.55 - 10;
+        drawCharacter(ctx, chefX, chefY, 48, 'left', 'spatula', 0);
 
         // Orders area title
         ctx.fillStyle = t.secondary + '60';
