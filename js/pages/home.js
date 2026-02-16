@@ -1,7 +1,6 @@
 // js/pages/home.js
 import { Auth } from '../auth.js';
 import { GameRegistry } from '../games/loader.js';
-import { create3DAvatar, registerPageAvatar } from '../components/avatar.js';
 import { GoBux, GOBUX_ICON, GOBUX_ICON_LG } from '../gobux.js';
 
 /**
@@ -67,16 +66,9 @@ const CAT_GRADIENTS = [
     'linear-gradient(135deg, #9b59b6, #7d3c98)',
 ];
 
-let homeAvatar3D = null;
-
 export function renderHome(container, router) {
     const user = Auth.currentUser();
     if (!user) return;
-
-    if (homeAvatar3D) {
-        try { homeAvatar3D.dispose(); } catch (e) { /* ignore */ }
-        homeAvatar3D = null;
-    }
 
     const allGames = GameRegistry.getAllGames();
     const categories = GameRegistry.getCategories();
@@ -231,12 +223,7 @@ export function renderHome(container, router) {
     });
 }
 
-renderHome._cleanup = function () {
-    if (homeAvatar3D) {
-        try { homeAvatar3D.dispose(); } catch (e) { /* ignore */ }
-        homeAvatar3D = null;
-    }
-};
+renderHome._cleanup = function () {};
 
 function gameCard(game) {
     const players = getPlayerCount(game.id);

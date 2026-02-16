@@ -343,6 +343,27 @@ h4 { font-size: 1.1rem; }
     animation: slideIn 0.25s ease forwards;
 }
 
+/* --- Page Loader --- */
+.page-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+.page-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(0, 176, 111, 0.15);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: page-spin 0.7s linear infinite;
+}
+
+@keyframes page-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* --- Catalog Loading Skeleton --- */
 .catalog-loading {
     display: flex;
@@ -359,11 +380,7 @@ h4 { font-size: 1.1rem; }
     border: 3px solid rgba(0, 176, 111, 0.15);
     border-top-color: var(--accent-primary);
     border-radius: 50%;
-    animation: catalog-loading-spin 0.7s linear infinite;
-}
-
-@keyframes catalog-loading-spin {
-    to { transform: rotate(360deg); }
+    animation: page-spin 0.7s linear infinite;
 }
 
 .catalog-loading-text {
