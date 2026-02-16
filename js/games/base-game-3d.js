@@ -162,6 +162,7 @@ export class BaseGame3D {
         this.keys = {};
         this.mouseMovement = { x: 0, y: 0 };
         this.pointerLocked = false;
+        this.isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 1024;
 
         // Bound handlers
         this._onKeyDown = this._handleKeyDown.bind(this);
@@ -317,27 +318,48 @@ export class BaseGame3D {
     setupInput() {
         window.addEventListener('keydown', this._onKeyDown);
         window.addEventListener('keyup', this._onKeyUp);
-        this.container.addEventListener('mousemove', this._onMouseMove);
-        this.container.addEventListener('click', this._onClick);
         this.container.addEventListener('contextmenu', this._onContextMenu);
-        document.addEventListener('pointerlockchange', this._onPointerLockChange);
         window.addEventListener('resize', this._onResize);
 
-        // Show click-to-play message
-        this.lockMsg = document.createElement('div');
-        this.lockMsg.className = 'game-3d-lock-msg';
-        this.lockMsg.textContent = 'Klicken zum Spielen';
-        this.container.appendChild(this.lockMsg);
+        if (this.isMobile) {
+            // On mobile, skip pointer lock entirely. Camera and movement
+            // are handled by MobileControls3D overlay.
+            this.pointerLocked = true; // pretend locked so game logic works
+            // Show tap-to-start message instead
+            this.lockMsg = document.createElement('div');
+            this.lockMsg.className = 'game-3d-lock-msg';
+            this.lockMsg.textContent = 'Tippe zum Spielen';
+            this.lockMsg.style.pointerEvents = 'auto';
+            this.lockMsg.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.lockMsg.style.display = 'none';
+            }, { passive: false });
+            this.container.appendChild(this.lockMsg);
+        } else {
+            // Desktop: pointer lock mouse controls
+            this.container.addEventListener('mousemove', this._onMouseMove);
+            this.container.addEventListener('click', this._onClick);
+            document.addEventListener('pointerlockchange', this._onPointerLockChange);
+
+            // Show click-to-play message
+            this.lockMsg = document.createElement('div');
+            this.lockMsg.className = 'game-3d-lock-msg';
+            this.lockMsg.textContent = 'Klicken zum Spielen';
+            this.container.appendChild(this.lockMsg);
+        }
     }
 
     cleanupInput() {
         window.removeEventListener('keydown', this._onKeyDown);
         window.removeEventListener('keyup', this._onKeyUp);
-        this.container.removeEventListener('mousemove', this._onMouseMove);
-        this.container.removeEventListener('click', this._onClick);
         this.container.removeEventListener('contextmenu', this._onContextMenu);
-        document.removeEventListener('pointerlockchange', this._onPointerLockChange);
         window.removeEventListener('resize', this._onResize);
+
+        if (!this.isMobile) {
+            this.container.removeEventListener('mousemove', this._onMouseMove);
+            this.container.removeEventListener('click', this._onClick);
+            document.removeEventListener('pointerlockchange', this._onPointerLockChange);
+        }
     }
 
     _handleKeyDown(e) {
@@ -401,7 +423,7 @@ export class BaseGame3D {
             <div class="game-3d-loading-bar-wrap">
                 <div class="game-3d-loading-bar"></div>
             </div>
-            <div class="game-3d-loading-tip">WASD zum Bewegen, Maus zum Umschauen</div>
+            <div class="game-3d-loading-tip">${this.isMobile ? 'Joystick zum Bewegen, Wischen zum Umschauen' : 'WASD zum Bewegen, Maus zum Umschauen'}</div>
         `;
         this.container.appendChild(this.loadingEl);
 

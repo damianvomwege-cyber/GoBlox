@@ -76,7 +76,7 @@
     border-radius: 50%;
     background: var(--accent-primary);
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(108, 99, 255, 0.4);
+    box-shadow: 0 2px 6px rgba(0, 176, 111, 0.4);
     transition: transform 0.15s ease;
 }
 
@@ -91,7 +91,7 @@
     background: var(--accent-primary);
     cursor: pointer;
     border: none;
-    box-shadow: 0 2px 6px rgba(108, 99, 255, 0.4);
+    box-shadow: 0 2px 6px rgba(0, 176, 111, 0.4);
 }
 
 .settings-slider::-moz-range-track {
@@ -309,11 +309,12 @@
 /* ── Light Theme Variables ── */
 
 body.light-theme {
-    --bg-primary: #f0f2f5;
-    --bg-secondary: #e4e6eb;
+    --bg-primary: #f2f4f5;
+    --bg-secondary: #e8eaed;
     --bg-card: #ffffff;
-    --text-primary: #1a1a2e;
-    --text-secondary: #65676b;
+    --bg-hover: #ececec;
+    --text-primary: #191919;
+    --text-secondary: #606162;
     --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 

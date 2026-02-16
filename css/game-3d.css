@@ -41,7 +41,7 @@
     width: 64px;
     height: 64px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #6c63ff, #e94560);
+    background: var(--accent-primary, #00b06f);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -82,7 +82,7 @@
     height: 100%;
     width: 0%;
     border-radius: 3px;
-    background: linear-gradient(90deg, #6c63ff, #e94560);
+    background: var(--accent-primary, #00b06f);
     transition: width 0.15s ease;
 }
 

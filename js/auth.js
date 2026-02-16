@@ -20,7 +20,7 @@ export const Auth = {
             name,
             birthday,
             password,
-            avatar: { skin: '#ffb347', shirt: '#6c63ff', pants: '#333', hair: 0, accessory: 0 },
+            avatar: { skin: '#ffb347', shirt: '#00b06f', pants: '#333', hair: 0, accessory: 0 },
             createdAt: Date.now(),
             gamesPlayed: 0,
             totalScore: 0,

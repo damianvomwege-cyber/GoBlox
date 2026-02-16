@@ -67,14 +67,14 @@ const ICONS = {
    Navigation Items
    =========================== */
 const NAV_ITEMS = [
-    { label: 'Home',          icon: ICONS.home,        href: '#/home' },
-    { label: 'Spiele',        icon: ICONS.games,       href: '#/games' },
-    { label: 'Erstellen',     icon: ICONS.create,      href: '#/create' },
-    { label: 'Profil',        icon: ICONS.profile,     href: '#/profile' },
-    { label: 'Freunde',       icon: ICONS.friends,     href: '#/friends' },
-    { label: 'Rangliste',     icon: ICONS.leaderboard, href: '#/leaderboard' },
-    { label: 'Shop',          icon: ICONS.shop,        href: '#/store' },
-    { label: 'Einstellungen', icon: ICONS.settings,    href: '#/settings' },
+    { label: 'Home',     icon: ICONS.home,        href: '#/home' },
+    { label: 'Entdecken', icon: ICONS.games,       href: '#/games' },
+    { label: 'Erstellen', icon: ICONS.create,      href: '#/create' },
+    { label: 'Profil',   icon: ICONS.profile,     href: '#/profile' },
+    { label: 'Freunde',  icon: ICONS.friends,     href: '#/friends' },
+    { label: 'Rangliste', icon: ICONS.leaderboard, href: '#/leaderboard' },
+    { label: 'Shop',     icon: ICONS.shop,        href: '#/store' },
+    { label: 'Settings', icon: ICONS.settings,    href: '#/settings' },
 ];
 
 /* ===========================
@@ -115,20 +115,8 @@ export function renderSidebar(container, router) {
         <div class="sidebar-inner">
             <!-- Logo -->
             <a href="#/home" class="sidebar-logo">
-                <span class="sidebar-logo-text">GoBlox</span>
+                <div class="sidebar-logo-icon">G</div>
             </a>
-
-            <!-- User Info -->
-            <div class="sidebar-user">
-                <div class="sidebar-avatar-3d" style="width:40px;height:40px;border-radius:50%;overflow:hidden;"></div>
-                <div class="sidebar-user-info">
-                    <span class="sidebar-username">${user.name}</span>
-                    <div class="sidebar-gobux">
-                        ${GOBUX_ICON}
-                        <span class="sidebar-gobux-amount">${GoBux.getBalance(user.id).toLocaleString('de-DE')}</span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Divider -->
             <div class="sidebar-divider"></div>
@@ -141,27 +129,21 @@ export function renderSidebar(container, router) {
             <!-- Spacer -->
             <div class="sidebar-spacer"></div>
 
+            <!-- GoBux badge -->
+            <div class="sidebar-gobux-wrap" style="display:flex;flex-direction:column;align-items:center;padding:0.25rem 0;">
+                <div class="sidebar-gobux">
+                    ${GOBUX_ICON}
+                    <span class="sidebar-gobux-amount">${GoBux.getBalance(user.id).toLocaleString('de-DE')}</span>
+                </div>
+            </div>
+
             <!-- Logout -->
             <button class="sidebar-logout" id="sidebar-logout-btn">
                 <span class="sidebar-nav-icon">${ICONS.logout}</span>
-                <span class="sidebar-nav-label">Abmelden</span>
+                <span class="sidebar-nav-label">Logout</span>
             </button>
         </div>
     `;
-
-    // Create small 3D avatar in sidebar
-    const avatarContainer = container.querySelector('.sidebar-avatar-3d');
-    if (avatarContainer) {
-        const avatar = user.avatar || { skin: '#ffb347', shirt: '#6c63ff', pants: '#333', hair: 0, accessory: 0 };
-        sidebarAvatar3D = create3DAvatar(avatarContainer, avatar, {
-            width: 40,
-            height: 40,
-            autoRotate: true,
-            rotateSpeed: 0.006,
-            enableControls: false,
-        });
-        registerPageAvatar(sidebarAvatar3D);
-    }
 
     // Logout handler
     const logoutBtn = container.querySelector('#sidebar-logout-btn');
@@ -183,7 +165,6 @@ export function updateSidebarActive() {
 
     navItems.forEach(item => {
         const route = item.dataset.route;
-        // Match exact route, sub-routes, and also #/game → #/games
         const isActive = route === currentHash
             || currentHash.startsWith(route + '/')
             || (route === '#/games' && currentHash.startsWith('#/game/'));

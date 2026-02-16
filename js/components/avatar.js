@@ -23,7 +23,7 @@ const HAIR_COLORS = [
     '#1a1a2e',   // 2: long   — near black
     '#e94560',   // 3: mohawk — red/pink
     '#f5a623',   // 4: curly  — golden
-    '#6c63ff',   // 5: cap    — accent purple
+    '#00b06f',   // 5: cap    — accent green
 ];
 
 // ─── Helper: darken hex color ─────────────────────────────────────────
@@ -52,7 +52,7 @@ function matFlat(color) {
 function buildCharacter(config) {
     const {
         skin = '#ffb347',
-        shirt = '#6c63ff',
+        shirt = '#00b06f',
         pants = '#333333',
         hair = 0,
         accessory = 0
@@ -371,7 +371,7 @@ function buildAccessory(group, accessory, disposables) {
         case 4: { // Crown — gold spiky shape on top
             const crownMat = mat('#ffd700');
             const gemRedMat = mat('#e94560');
-            const gemBlueMat = mat('#6c63ff');
+            const gemBlueMat = mat('#00b06f');
 
             // Base band
             add(new THREE.BoxGeometry(1.1, 0.2, 1.1), crownMat, { y: headTop + 0.15 });
@@ -630,7 +630,7 @@ export function createAvatarCanvas(config, width = 80, height = 120) {
 export function drawAvatar(ctx, config, x, y, size) {
     const {
         skin = '#ffb347',
-        shirt = '#6c63ff',
+        shirt = '#00b06f',
         pants = '#333333',
         hair = 0,
         accessory = 0
@@ -732,7 +732,7 @@ export function drawAvatar(ctx, config, x, y, size) {
 }
 
 function drawHair2D(ctx, hairStyle, hx, hy, hw, hh, u) {
-    const HAIR_COLORS_2D = ['transparent', '#3d2314', '#1a1a2e', '#e94560', '#f5a623', '#6c63ff'];
+    const HAIR_COLORS_2D = ['transparent', '#3d2314', '#1a1a2e', '#e94560', '#f5a623', '#00b06f'];
     const hairColor = HAIR_COLORS_2D[hairStyle] || '#3d2314';
 
     if (hairStyle === 0) return;
@@ -823,7 +823,7 @@ function drawAccessory2D(ctx, acc, hx, hy, hw, hh, u, bodyLeft, bodySize) {
             }
             ctx.fillStyle = '#e94560';
             ctx.fillRect(crownX + crownW * 0.45, crownY + crownH * 0.5, u * 0.4, u * 0.4);
-            ctx.fillStyle = '#6c63ff';
+            ctx.fillStyle = '#00b06f';
             ctx.fillRect(crownX + crownW * 0.2, crownY + crownH * 0.5, u * 0.3, u * 0.3);
             ctx.fillRect(crownX + crownW * 0.7, crownY + crownH * 0.5, u * 0.3, u * 0.3);
             break;

@@ -1,13 +1,19 @@
 import { GameRegistry } from '../games/loader.js';
 import { Auth } from '../auth.js';
 import { GoBux, GOBUX_ICON } from '../gobux.js';
+import { isMobile, getControlType, MobileControls, MobileControls3D } from '../games/mobile-controls.js';
 
 let currentGame = null;
 let currentGameData = null;
 let scoreInterval = null;
 let resizeHandler = null;
+let mobileControls = null;
 
 function cleanup() {
+    if (mobileControls) {
+        try { mobileControls.destroy(); } catch (e) { /* ignore */ }
+        mobileControls = null;
+    }
     if (currentGame) {
         try { currentGame.stop(); } catch (e) { /* ignore cleanup errors */ }
         currentGame = null;
@@ -64,18 +70,19 @@ export function renderGame(container, router, gameId) {
 
     currentGameData = game;
     const is3D = !!game.is3D;
+    const mobile = isMobile();
 
     // Check if this game is in the user's favorites
     const user = Auth.currentUser();
     const isFav = user && user.favorites && user.favorites.includes(game.id);
 
     container.innerHTML = `
-        <div class="game-page">
+        <div class="game-page ${mobile ? 'game-page-mobile' : ''}">
             <!-- Top bar -->
             <div class="game-topbar">
                 <button class="btn btn-sm btn-secondary game-back" id="game-back">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                    Zuruck
+                    ${mobile ? '' : 'Zuruck'}
                 </button>
                 <span class="game-title" title="${game.name}">${game.name}</span>
                 <span class="game-score" id="game-score">Score: 0</span>
@@ -96,19 +103,19 @@ export function renderGame(container, router, gameId) {
                         <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
                         <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
                     </svg>
-                    Vollbild
+                    ${mobile ? '' : 'Vollbild'}
                 </button>
                 <button class="btn btn-sm btn-secondary" id="game-restart" title="Neustarten">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
                     </svg>
-                    Neustart
+                    ${mobile ? '' : 'Neustart'}
                 </button>
                 <button class="btn btn-sm btn-secondary game-fav-btn ${isFav ? 'game-fav-active' : ''}" id="game-fav" title="Favorit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
-                    Favorit
+                    ${mobile ? '' : 'Favorit'}
                 </button>
             </div>
 
@@ -166,6 +173,12 @@ export function renderGame(container, router, gameId) {
         const rewardEl = container.querySelector('#gobux-reward');
         if (rewardEl) rewardEl.classList.add('hidden');
 
+        // Cleanup previous mobile controls
+        if (mobileControls) {
+            mobileControls.destroy();
+            mobileControls = null;
+        }
+
         if (currentGame) {
             currentGame.stop();
             currentGame = null;
@@ -208,6 +221,11 @@ export function renderGame(container, router, gameId) {
             return;
         }
 
+        // Set up mobile controls after game starts
+        if (mobile && currentGame) {
+            setupMobileControls();
+        }
+
         // Score polling
         if (scoreInterval) clearInterval(scoreInterval);
         scoreInterval = setInterval(() => {
@@ -215,6 +233,20 @@ export function renderGame(container, router, gameId) {
                 scoreEl.textContent = `Score: ${currentGame.score}`;
             }
         }, 100);
+    }
+
+    // ── Mobile Controls Setup ────────────────────────────────────────────
+    function setupMobileControls() {
+        if (is3D) {
+            // 3D games get joystick + camera touch + jump
+            mobileControls = new MobileControls3D(container3D, currentGame, game.templateName);
+            mobileControls.setup();
+        } else {
+            // 2D games get controls based on template type
+            const controlType = getControlType(game.templateName);
+            mobileControls = new MobileControls(canvasWrap, currentGame, controlType);
+            mobileControls.setup();
+        }
     }
 
     // ── Game Over ───────────────────────────────────────────────────────

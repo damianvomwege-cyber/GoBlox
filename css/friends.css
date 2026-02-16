@@ -70,7 +70,7 @@
 }
 
 .friends-dropdown-item:hover {
-    background: rgba(108, 99, 255, 0.12);
+    background: rgba(0, 176, 111, 0.12);
     color: var(--text-primary);
 }
 

@@ -33,10 +33,7 @@
 .create-toolbar-logo {
     font-weight: 900;
     font-size: 1.1rem;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent-primary);
     margin-right: 0.75rem;
     cursor: pointer;
     user-select: none;
@@ -180,7 +177,7 @@
 }
 
 .palette-item.active {
-    background: rgba(108, 99, 255, 0.15);
+    background: rgba(0, 176, 111, 0.15);
     border-color: var(--accent-primary);
     color: var(--text-primary);
 }
@@ -238,7 +235,7 @@
     top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(108, 99, 255, 0.85);
+    background: rgba(0, 176, 111, 0.85);
     color: #fff;
     font-size: 0.75rem;
     font-weight: 600;

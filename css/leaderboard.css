@@ -40,7 +40,7 @@
 .lb-tab.active {
     background: var(--accent-primary);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 176, 111, 0.3);
 }
 
 /* ── Players List ── */
@@ -67,8 +67,8 @@
 }
 
 .lb-player-me {
-    border-color: rgba(108, 99, 255, 0.3);
-    background: rgba(108, 99, 255, 0.08);
+    border-color: rgba(0, 176, 111, 0.3);
+    background: rgba(0, 176, 111, 0.08);
 }
 
 .lb-player-rank {
@@ -192,10 +192,7 @@
 .lb-stat-value {
     font-size: 2rem;
     font-weight: 800;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent-primary);
 }
 
 .lb-stat-label {
@@ -243,7 +240,7 @@
 
 .lb-bar-fill {
     height: 100%;
-    background: var(--accent-gradient);
+    background: var(--accent-primary);
     border-radius: 10px;
     min-width: 8px;
     transition: width 0.5s ease;

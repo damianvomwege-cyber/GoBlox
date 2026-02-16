@@ -1,0 +1,350 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Mobile Touch Controls
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Mobile Game Page Adjustments ─────────────────────────────────────── */
+
+.game-page-mobile .game-topbar {
+    padding: 0.35rem 0.5rem;
+}
+
+.game-page-mobile .game-bottombar {
+    padding: 0.35rem 0.5rem;
+    gap: 0.4rem;
+}
+
+.game-page-mobile .game-bottombar .btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0;
+    min-width: 36px;
+    justify-content: center;
+}
+
+.game-page-mobile .game-bottombar .btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Prevent text selection and callouts on touch */
+.game-page-mobile .game-canvas-wrap,
+.game-page-mobile .game-3d-container {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+/* ── Shared Button Styles ─────────────────────────────────────────────── */
+
+.mobile-dpad-btn,
+.mobile-action-btn,
+.mobile-tetris-btn,
+.mobile-horizontal-btn,
+.mobile-3d-jump-btn,
+.mobile-3d-shoot-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 700;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: pointer;
+    transition: background 0.1s, transform 0.1s, border-color 0.1s;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 80;
+}
+
+.mobile-dpad-btn.active,
+.mobile-action-btn.active,
+.mobile-tetris-btn.active,
+.mobile-horizontal-btn.active,
+.mobile-3d-jump-btn.active,
+.mobile-3d-shoot-btn.active {
+    background: rgba(0, 176, 111, 0.45);
+    border-color: rgba(0, 176, 111, 0.7);
+    transform: scale(0.92);
+    color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   D-PAD
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mobile-dpad {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    width: 130px;
+    height: 130px;
+    z-index: 80;
+    pointer-events: none;
+}
+
+.mobile-dpad-btn {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    pointer-events: auto;
+}
+
+.mobile-dpad-up {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.mobile-dpad-down {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.mobile-dpad-left {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.mobile-dpad-right {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.mobile-dpad-up.active    { transform: translateX(-50%) scale(0.92); }
+.mobile-dpad-down.active  { transform: translateX(-50%) scale(0.92); }
+.mobile-dpad-left.active  { transform: translateY(-50%) scale(0.92); }
+.mobile-dpad-right.active { transform: translateY(-50%) scale(0.92); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   JOYSTICK
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mobile-joystick,
+.mobile-3d-joystick {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    width: 120px;
+    height: 120px;
+    z-index: 80;
+    pointer-events: auto;
+}
+
+.mobile-joystick-base {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.mobile-joystick-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 176, 111, 0.5);
+    border: 2px solid rgba(0, 176, 111, 0.7);
+    box-shadow: 0 2px 12px rgba(0, 176, 111, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mobile-action-right {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 64px;
+    height: 64px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    z-index: 80;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TETRIS CONTROLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mobile-tetris-left {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 80;
+}
+
+.mobile-tetris-right {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 80;
+}
+
+.mobile-tetris-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 16px;
+    border-radius: 14px;
+    pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HORIZONTAL CONTROLS (Racing, Breakout, Catch)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mobile-horizontal {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 80;
+    pointer-events: none;
+}
+
+.mobile-horizontal-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 20px;
+    border-radius: 50%;
+    pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3D GAME CONTROLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Camera touch area covers right half of screen, behind other controls */
+.mobile-3d-camera-area {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 55%;
+    height: 100%;
+    z-index: 70;
+    /* Semi-transparent indicator on first touch would go here */
+}
+
+.mobile-3d-jump-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 64px;
+    height: 64px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    z-index: 80;
+}
+
+.mobile-3d-shoot-btn {
+    position: absolute;
+    bottom: 100px;
+    right: 24px;
+    width: 64px;
+    height: 64px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: rgba(233, 69, 96, 0.25);
+    border-color: rgba(233, 69, 96, 0.5);
+    z-index: 80;
+}
+
+.mobile-3d-shoot-btn.active {
+    background: rgba(233, 69, 96, 0.6);
+    border-color: rgba(233, 69, 96, 0.9);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LANDSCAPE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+    .mobile-dpad,
+    .mobile-joystick,
+    .mobile-3d-joystick {
+        bottom: 8px;
+        left: 8px;
+        width: 100px;
+        height: 100px;
+    }
+
+    .mobile-dpad-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+
+    .mobile-joystick-knob {
+        width: 40px;
+        height: 40px;
+    }
+
+    .mobile-action-right,
+    .mobile-3d-jump-btn {
+        bottom: 12px;
+        right: 12px;
+        width: 52px;
+        height: 52px;
+        font-size: 11px;
+    }
+
+    .mobile-3d-shoot-btn {
+        bottom: 76px;
+        right: 12px;
+        width: 52px;
+        height: 52px;
+        font-size: 11px;
+    }
+
+    .mobile-tetris-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 14px;
+    }
+
+    .mobile-horizontal-btn {
+        width: 52px;
+        height: 52px;
+        font-size: 18px;
+    }
+
+    .game-page-mobile .game-topbar {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .game-page-mobile .game-bottombar {
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HIDE LOCK MESSAGE ON MOBILE FOR 3D GAMES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+    .game-3d-lock-msg {
+        font-size: 0.95rem;
+    }
+}

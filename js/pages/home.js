@@ -6,7 +6,6 @@ import { GoBux, GOBUX_ICON, GOBUX_ICON_LG } from '../gobux.js';
 
 /**
  * Seeded pseudo-random number generator (mulberry32).
- * Returns a function that produces values in [0, 1).
  */
 function seededRandom(seed) {
     return function () {
@@ -18,17 +17,11 @@ function seededRandom(seed) {
     };
 }
 
-/**
- * Get a daily seed based on today's date.
- */
 function getDailySeed() {
     const d = new Date();
     return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
 
-/**
- * Fisher-Yates shuffle with seeded RNG.
- */
 function seededShuffle(arr, rng) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -38,30 +31,48 @@ function seededShuffle(arr, rng) {
     return a;
 }
 
-// Category gradient colors
+// Deterministic player count from game ID
+function getPlayerCount(gameId) {
+    let s = gameId * 2654435761;
+    s = ((s >>> 16) ^ s) * 0x45d9f3b;
+    s = ((s >>> 16) ^ s);
+    return (Math.abs(s) % 5000) + 50;
+}
+
+function formatPlayerCount(count) {
+    if (count >= 1000) return (count / 1000).toFixed(1).replace('.0', '') + 'K';
+    return count.toString();
+}
+
+// Deterministic like percentage
+function getLikePercent(gameId) {
+    let s = gameId * 1664525 + 1013904223;
+    s = ((s >>> 16) ^ s);
+    return 60 + (Math.abs(s) % 40); // 60-99%
+}
+
+// Category gradients (darker, more saturated)
 const CAT_GRADIENTS = [
-    'linear-gradient(135deg, #6c63ff, #a29bfe)',
-    'linear-gradient(135deg, #e94560, #fd79a8)',
-    'linear-gradient(135deg, #00cec9, #81ecec)',
-    'linear-gradient(135deg, #55efc4, #00b894)',
-    'linear-gradient(135deg, #fdcb6e, #f39c12)',
-    'linear-gradient(135deg, #e17055, #fab1a0)',
-    'linear-gradient(135deg, #0984e3, #74b9ff)',
-    'linear-gradient(135deg, #6ab04c, #badc58)',
-    'linear-gradient(135deg, #d63031, #ff7675)',
-    'linear-gradient(135deg, #a29bfe, #6c5ce7)',
-    'linear-gradient(135deg, #fd79a8, #e84393)',
-    'linear-gradient(135deg, #636e72, #b2bec3)',
+    'linear-gradient(135deg, #1a8a5c, #0d6b42)',
+    'linear-gradient(135deg, #c0392b, #96281b)',
+    'linear-gradient(135deg, #2980b9, #1a5276)',
+    'linear-gradient(135deg, #8e44ad, #6c3483)',
+    'linear-gradient(135deg, #d68910, #b7950b)',
+    'linear-gradient(135deg, #16a085, #0e6655)',
+    'linear-gradient(135deg, #2c3e50, #1a252f)',
+    'linear-gradient(135deg, #e74c3c, #c0392b)',
+    'linear-gradient(135deg, #3498db, #2471a3)',
+    'linear-gradient(135deg, #27ae60, #1e8449)',
+    'linear-gradient(135deg, #e67e22, #ca6f1e)',
+    'linear-gradient(135deg, #9b59b6, #7d3c98)',
 ];
 
-// Track the active 3D avatar for cleanup
 let homeAvatar3D = null;
 
 export function renderHome(container, router) {
     const user = Auth.currentUser();
     if (!user) return;
 
-    // Cleanup previous home avatar
     if (homeAvatar3D) {
         try { homeAvatar3D.dispose(); } catch (e) { /* ignore */ }
         homeAvatar3D = null;
@@ -70,43 +81,78 @@ export function renderHome(container, router) {
     const allGames = GameRegistry.getAllGames();
     const categories = GameRegistry.getCategories();
 
-    // Featured games: seeded daily random selection of 10
     const rng = seededRandom(getDailySeed());
-    const featured = seededShuffle(allGames, rng).slice(0, 10);
+    const featured = seededShuffle(allGames, rng).slice(0, 12);
+    const heroGame = featured[0];
+
+    // Popular games (sorted by player count)
+    const popular = [...allGames].sort((a, b) => getPlayerCount(b.id) - getPlayerCount(a.id)).slice(0, 12);
 
     // Recent games
     const recentGames = (user.recentGames || []).slice(0, 10);
     const recentGameObjects = recentGames
         .map(rg => {
             const game = GameRegistry.getGame(rg.gameId);
-            return game ? { ...game, recentScore: rg.score, recentDate: rg.date } : null;
+            return game ? { ...game, recentScore: rg.score } : null;
         })
         .filter(Boolean);
 
+    const heroPlayers = getPlayerCount(heroGame.id);
+    const heroLike = getLikePercent(heroGame.id);
+
     container.innerHTML = `
         <div class="home-page animate-fade-in">
-            <!-- Welcome Banner -->
-            <div class="home-banner">
-                <div class="home-banner-content">
-                    <div class="home-banner-text">
-                        <h1>Willkommen zurueck, <span class="text-gradient">${user.name}</span>!</h1>
-                        <p class="text-secondary mt-1">Entdecke neue Spiele und fordere deine Freunde heraus.</p>
-                        <a href="#/games" class="btn mt-2">Spiele entdecken</a>
-                    </div>
-                    <div class="home-banner-avatar">
-                        <div id="home-avatar-3d" style="width:120px;height:180px;"></div>
+            <!-- Hero Banner -->
+            <div class="home-hero" data-game-id="${heroGame.id}">
+                <img class="home-hero-img" src="${heroGame.thumbnail}" alt="${heroGame.name}" />
+                <div class="home-hero-overlay">
+                    <div class="home-hero-badge">Empfohlen</div>
+                    <div class="home-hero-title">${heroGame.name}</div>
+                    <div class="home-hero-meta">
+                        <span class="home-hero-playing">
+                            <span class="home-hero-dot"></span>
+                            ${formatPlayerCount(heroPlayers)} spielen
+                        </span>
+                        <span class="home-hero-like">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
+                            ${heroLike}%
+                        </span>
+                        <span>${heroGame.category}</span>
                     </div>
                 </div>
             </div>
 
+            ${recentGameObjects.length > 0 ? `
+            <!-- Continue Playing -->
+            <section class="home-section">
+                <div class="home-section-header">
+                    <h2>Weiterspielen</h2>
+                </div>
+                <div class="home-scroll-row">
+                    ${recentGameObjects.map(g => gameCard(g)).join('')}
+                </div>
+            </section>
+            ` : ''}
+
+            <!-- Popular -->
+            <section class="home-section">
+                <div class="home-section-header">
+                    <h2>Beliebt</h2>
+                    <a href="#/games" class="home-see-all">Alle anzeigen</a>
+                </div>
+                <div class="home-scroll-row">
+                    ${popular.map(g => gameCard(g)).join('')}
+                </div>
+            </section>
+
             <!-- Featured Games -->
             <section class="home-section">
                 <div class="home-section-header">
-                    <h2>Empfohlene Spiele</h2>
+                    <h2>Empfohlen fuer dich</h2>
                     <a href="#/games" class="home-see-all">Alle anzeigen</a>
                 </div>
-                <div class="home-scroll-row" id="home-featured-row">
-                    ${featured.map(g => gameCard(g)).join('')}
+                <div class="home-scroll-row">
+                    ${featured.slice(1).map(g => gameCard(g)).join('')}
                 </div>
             </section>
 
@@ -116,7 +162,7 @@ export function renderHome(container, router) {
                     <h2>Kategorien</h2>
                 </div>
                 <div class="home-cat-grid">
-                    ${categories.slice(0, 12).map((cat, i) => `
+                    ${categories.slice(0, 8).map((cat, i) => `
                         <div class="home-cat-card" data-category="${cat.name}" style="background:${CAT_GRADIENTS[i % CAT_GRADIENTS.length]};">
                             <div class="home-cat-name">${cat.name}</div>
                             <div class="home-cat-count">${cat.count} Spiele</div>
@@ -125,27 +171,10 @@ export function renderHome(container, router) {
                 </div>
             </section>
 
-            <!-- Recently Played -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Zuletzt gespielt</h2>
-                </div>
-                ${recentGameObjects.length > 0 ? `
-                    <div class="home-scroll-row" id="home-recent-row">
-                        ${recentGameObjects.map(g => gameCard(g)).join('')}
-                    </div>
-                ` : `
-                    <div class="home-empty-row">
-                        <p class="text-secondary">Spiel jetzt dein erstes Spiel!</p>
-                        <a href="#/games" class="btn btn-sm mt-1">Los geht's</a>
-                    </div>
-                `}
-            </section>
-
             <!-- Quick Stats -->
             <section class="home-section">
                 <div class="home-section-header">
-                    <h2>Schnellstatistik</h2>
+                    <h2>Deine Statistiken</h2>
                 </div>
                 <div class="home-quick-stats">
                     <div class="home-quick-stat">
@@ -172,24 +201,19 @@ export function renderHome(container, router) {
                     <div class="home-gobux-tip-icon">${GOBUX_ICON_LG}</div>
                     <div class="home-gobux-tip-text">
                         <h4>GoBux verdienen</h4>
-                        <p>Spiele Spiele um GoBux zu verdienen! Jedes Spiel bringt mindestens 1 GoBux. Erhalte Bonus-GoBux durch hohe Punktzahlen und spielspezifische Erfolge. Gib sie im <a href="#/store" style="color:#ffd700;text-decoration:underline;">Shop</a> fuer Game Passes aus!</p>
+                        <p>Spiele Spiele um GoBux zu verdienen! Gib sie im <a href="#/store" style="color:#ffd700;text-decoration:underline;">Shop</a> fuer Game Passes aus!</p>
                     </div>
                 </div>
             </section>
         </div>
     `;
 
-    // Create 3D avatar in the welcome banner
-    const avatarContainer = container.querySelector('#home-avatar-3d');
-    if (avatarContainer) {
-        homeAvatar3D = create3DAvatar(avatarContainer, user.avatar, {
-            width: 120,
-            height: 180,
-            autoRotate: true,
-            rotateSpeed: 0.008,
-            enableControls: false,
+    // Hero click
+    const hero = container.querySelector('.home-hero');
+    if (hero) {
+        hero.addEventListener('click', () => {
+            router.navigate(`#/game/${hero.dataset.gameId}`);
         });
-        registerPageAvatar(homeAvatar3D);
     }
 
     // Game card clicks
@@ -199,17 +223,14 @@ export function renderHome(container, router) {
         });
     });
 
-    // Category card clicks — navigate to games page with category filter
+    // Category card clicks
     container.querySelectorAll('.home-cat-card').forEach(card => {
         card.addEventListener('click', () => {
-            // Navigate to games page; the catalog page does not currently accept query params,
-            // so we store the selected category and navigate.
             router.navigate('#/games');
         });
     });
 }
 
-// Expose cleanup so app.js can call it on navigation
 renderHome._cleanup = function () {
     if (homeAvatar3D) {
         try { homeAvatar3D.dispose(); } catch (e) { /* ignore */ }
@@ -218,12 +239,26 @@ renderHome._cleanup = function () {
 };
 
 function gameCard(game) {
+    const players = getPlayerCount(game.id);
+    const likePercent = getLikePercent(game.id);
     return `
         <div class="home-game-card" data-game-id="${game.id}">
             <div class="home-game-thumb">
                 <img src="${game.thumbnail}" alt="${game.name}" loading="lazy" />
             </div>
-            <div class="home-game-name">${game.name}</div>
+            <div class="home-game-info">
+                <div class="home-game-name">${game.name}</div>
+                <div class="home-game-meta">
+                    <span class="home-game-playing">
+                        <span class="home-game-dot"></span>
+                        ${formatPlayerCount(players)}
+                    </span>
+                    <span class="home-game-like">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
+                        ${likePercent}%
+                    </span>
+                </div>
+            </div>
         </div>
     `;
 }

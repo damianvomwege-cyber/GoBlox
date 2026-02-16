@@ -803,7 +803,7 @@ export function renderCreate(container, router) {
 
         const outlineGeo = new THREE.BoxGeometry(size.x + 0.1, size.y + 0.1, size.z + 0.1);
         const outlineMat = new THREE.MeshBasicMaterial({
-            color: 0x6c63ff,
+            color: 0x00b06f,
             wireframe: true,
             transparent: true,
             opacity: 0.6,

@@ -115,7 +115,7 @@
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    z-index: 50;
+    z-index: 100;
     animation: gameOverFadeIn 0.3s ease;
 }
 
@@ -135,9 +135,9 @@
 .game-over-box {
     text-align: center;
     padding: 2.5rem 3rem;
-    background: rgba(22, 33, 62, 0.85);
+    background: rgba(44, 44, 44, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
+    border-radius: 12px;
     box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -160,10 +160,7 @@
 .game-over-title {
     font-size: 2rem;
     font-weight: 800;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent-primary);
     margin-bottom: 1rem;
 }
 

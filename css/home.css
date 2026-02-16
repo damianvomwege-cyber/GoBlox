@@ -1,5 +1,5 @@
 /* ===========================
-   Home Dashboard
+   Home - Roblox-Style Dashboard
    =========================== */
 
 .home-page {
@@ -7,84 +7,132 @@
     margin: 0 auto;
 }
 
-/* ── Welcome Banner ── */
+/* ── Hero Banner ── */
 
-.home-banner {
-    background: linear-gradient(135deg, rgba(108, 99, 255, 0.25), rgba(233, 69, 96, 0.2));
-    border-radius: var(--border-radius);
-    padding: 2rem 2.5rem;
-    margin-bottom: 2rem;
-    border: 1px solid rgba(108, 99, 255, 0.15);
+.home-hero {
     position: relative;
+    border-radius: 12px;
     overflow: hidden;
+    margin-bottom: 1.75rem;
+    cursor: pointer;
+    height: 280px;
+    background: var(--bg-card);
 }
 
-.home-banner::before {
-    content: '';
+.home-hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+}
+
+.home-hero:hover .home-hero-img {
+    transform: scale(1.03);
+}
+
+.home-hero-overlay {
     position: absolute;
-    top: -50%;
-    right: -10%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(108, 99, 255, 0.15), transparent 70%);
-    pointer-events: none;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.75rem 2rem;
 }
 
-.home-banner-content {
+.home-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--accent-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    width: fit-content;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.home-hero-title {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 0.4rem;
+}
+
+.home-hero-meta {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-    position: relative;
-    z-index: 1;
+    gap: 1rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.8);
 }
 
-.home-banner-text h1 {
-    font-size: 1.8rem;
+.home-hero-playing {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
-.home-banner-text p {
-    font-size: 1rem;
+.home-hero-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    display: inline-block;
+    animation: heroDotPulse 2s ease-in-out infinite;
 }
 
-.home-banner-avatar canvas {
-    display: block;
-    image-rendering: auto;
+@keyframes heroDotPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.home-hero-like {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 /* ── Sections ── */
 
 .home-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
 }
 
 .home-section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .home-section-header h2 {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
+    font-weight: 800;
 }
 
 .home-see-all {
-    font-size: 0.85rem;
-    color: var(--accent-primary);
-    font-weight: 600;
-    transition: opacity var(--transition-fast);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+    transition: color var(--transition-fast);
 }
 
 .home-see-all:hover {
-    opacity: 0.8;
+    color: var(--text-primary);
 }
 
 /* ── Horizontal Scroll Row ── */
 
 .home-scroll-row {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     overflow-x: auto;
     padding-bottom: 0.5rem;
     scroll-snap-type: x mandatory;
@@ -92,37 +140,37 @@
 }
 
 .home-scroll-row::-webkit-scrollbar {
-    height: 6px;
+    height: 4px;
 }
 
 .home-scroll-row::-webkit-scrollbar-thumb {
-    background: rgba(108, 99, 255, 0.3);
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
 }
 
-/* ── Game Cards (in scroll rows) ── */
+/* ── Game Cards (Roblox-style) ── */
 
 .home-game-card {
     flex-shrink: 0;
-    width: 160px;
+    width: 150px;
     cursor: pointer;
     border-radius: var(--border-radius);
     overflow: hidden;
     background: var(--bg-card);
-    border: 1px solid rgba(255, 255, 255, 0.05);
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
     scroll-snap-align: start;
 }
 
 .home-game-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 .home-game-thumb {
     aspect-ratio: 1;
     overflow: hidden;
     background: var(--bg-primary);
+    position: relative;
 }
 
 .home-game-thumb img {
@@ -137,13 +185,51 @@
     transform: scale(1.05);
 }
 
+.home-game-info {
+    padding: 0.5rem 0.6rem 0.45rem;
+}
+
 .home-game-name {
-    padding: 0.5rem 0.65rem;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.home-game-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+.home-game-playing {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.home-game-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.home-game-like {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.home-game-like svg {
+    width: 10px;
+    height: 10px;
 }
 
 /* ── Category Grid ── */
@@ -151,55 +237,75 @@
 .home-cat-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .home-cat-card {
     border-radius: var(--border-radius);
-    padding: 1.25rem;
+    padding: 1rem;
     cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform var(--transition-fast);
     position: relative;
     overflow: hidden;
-    min-height: 90px;
+    min-height: 72px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
 }
 
-.home-cat-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.15);
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-}
-
 .home-cat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
-.home-cat-card:hover::before {
-    opacity: 1;
+    transform: translateY(-2px);
 }
 
 .home-cat-name {
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #fff;
     position: relative;
     z-index: 1;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .home-cat-count {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.75);
     position: relative;
     z-index: 1;
+    margin-top: 0.1rem;
+}
+
+/* ── Quick Stats ── */
+
+.home-quick-stats {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.home-quick-stat {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: transform var(--transition-fast);
+}
+
+.home-quick-stat:hover {
+    transform: translateY(-2px);
+}
+
+.home-quick-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+}
+
+.home-quick-stat-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
     margin-top: 0.15rem;
+    font-weight: 600;
 }
 
 /* ── Empty Row ── */
@@ -208,47 +314,63 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem;
+    padding: 1.5rem;
     background: var(--bg-card);
     border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     text-align: center;
 }
 
-/* ── Quick Stats ── */
+/* ── GoBux Tip ── */
 
-.home-quick-stats {
+.home-gobux-tip {
+    background: rgba(255, 215, 0, 0.06);
+    border: 1px solid rgba(255, 215, 0, 0.12);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-top: 0.75rem;
     display: flex;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.home-quick-stat {
-    flex: 1;
-    background: var(--bg-card);
-    border-radius: var(--border-radius);
-    padding: 1.25rem;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: transform var(--transition-fast);
+.home-gobux-tip-icon {
+    flex-shrink: 0;
 }
 
-.home-quick-stat:hover {
-    transform: translateY(-3px);
+.home-gobux-tip-text h4 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 0.15rem;
 }
 
-.home-quick-stat-value {
-    font-size: 1.8rem;
-    font-weight: 800;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.home-quick-stat-label {
-    font-size: 0.8rem;
+.home-gobux-tip-text p {
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    margin-top: 0.2rem;
+    line-height: 1.4;
+}
+
+/* ── Welcome (small inline) ── */
+
+.home-welcome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.home-welcome h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.home-welcome-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 /* ── Responsive ── */
@@ -258,13 +380,12 @@
         grid-template-columns: repeat(3, 1fr);
     }
 
-    .home-banner-content {
-        flex-direction: column;
-        text-align: center;
+    .home-hero {
+        height: 200px;
     }
 
-    .home-banner-text h1 {
-        font-size: 1.4rem;
+    .home-hero-title {
+        font-size: 1.3rem;
     }
 }
 
@@ -274,11 +395,24 @@
     }
 
     .home-quick-stats {
-        flex-direction: column;
+        flex-wrap: wrap;
     }
 
-    .home-banner {
-        padding: 1.5rem;
+    .home-quick-stat {
+        min-width: calc(50% - 0.5rem);
+    }
+
+    .home-hero {
+        height: 160px;
+        border-radius: 8px;
+    }
+
+    .home-hero-overlay {
+        padding: 1rem 1.25rem;
+    }
+
+    .home-hero-title {
+        font-size: 1.1rem;
     }
 
     .home-game-card {

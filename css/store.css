@@ -147,7 +147,7 @@
 }
 
 .store-btn-buy {
-    background: var(--accent-gradient);
+    background: var(--accent-primary);
     color: #fff;
     border: none;
     cursor: pointer;

@@ -1,57 +1,61 @@
 import { GameRegistry } from '../games/loader.js';
 
-// ── Category color mapping ──────────────────────────────────────────────
+// ── Category color mapping ──
 const CATEGORY_COLORS = {
-    'Platformer':     { bg: '#6c63ff22', text: '#6c63ff', border: '#6c63ff55' },
-    'Tycoon':         { bg: '#ffd70022', text: '#ffd700', border: '#ffd70055' },
-    'Racing':         { bg: '#e74c3c22', text: '#e74c3c', border: '#e74c3c55' },
-    'Tower Defense':  { bg: '#00cec922', text: '#00cec9', border: '#00cec955' },
-    'Puzzle':         { bg: '#0984e322', text: '#0984e3', border: '#0984e355' },
-    'Shooter':        { bg: '#d6303122', text: '#d63031', border: '#d6303155' },
-    'Snake':          { bg: '#00b89422', text: '#00b894', border: '#00b89455' },
-    'Breakout':       { bg: '#e8439322', text: '#e84393', border: '#e8439355' },
-    'Memory':         { bg: '#a29bfe22', text: '#a29bfe', border: '#a29bfe55' },
-    'Quiz':           { bg: '#fdcb6e22', text: '#fdcb6e', border: '#fdcb6e55' },
-    'Maze':           { bg: '#636e7222', text: '#b2bec3', border: '#636e7255' },
-    'Flappy':         { bg: '#55efc422', text: '#55efc4', border: '#55efc455' },
-    'Tetris':         { bg: '#e74c3c22', text: '#f39c12', border: '#f39c1255' },
-    'Whack-a-Mole':   { bg: '#e1705522', text: '#e17055', border: '#e1705555' },
-    'Rhythm':         { bg: '#fd79a822', text: '#fd79a8', border: '#fd79a855' },
-    'Fishing':        { bg: '#74b9ff22', text: '#74b9ff', border: '#74b9ff55' },
-    'Cooking':        { bg: '#fab1a022', text: '#fab1a0', border: '#fab1a055' },
-    'Farming':        { bg: '#6ab04c22', text: '#6ab04c', border: '#6ab04c55' },
-    'Word':           { bg: '#dfe6e922', text: '#dfe6e9', border: '#dfe6e955' },
-    'Drawing':        { bg: '#fd79a822', text: '#fd79a8', border: '#fd79a855' },
-    'Survival':       { bg: '#2d343622', text: '#b2bec3', border: '#63727255' },
-    'Simon Says':     { bg: '#f1c40f22', text: '#f1c40f', border: '#f1c40f55' },
-    'Space':          { bg: '#4834d422', text: '#a29bfe', border: '#6c5ce755' },
-    'Bubble Shooter': { bg: '#81ecec22', text: '#81ecec', border: '#00cec955' },
-    'Catch':          { bg: '#fdcb6e22', text: '#fdcb6e', border: '#f39c1255' },
+    'Platformer':     { bg: '#1a8a5c22', text: '#1a8a5c' },
+    'Tycoon':         { bg: '#d6891022', text: '#d68910' },
+    'Racing':         { bg: '#c0392b22', text: '#c0392b' },
+    'Tower Defense':  { bg: '#16a08522', text: '#16a085' },
+    'Puzzle':         { bg: '#2980b922', text: '#2980b9' },
+    'Shooter':        { bg: '#e74c3c22', text: '#e74c3c' },
+    'Snake':          { bg: '#1e844922', text: '#1e8449' },
+    'Breakout':       { bg: '#8e44ad22', text: '#8e44ad' },
+    'Memory':         { bg: '#6c5ce722', text: '#6c5ce7' },
+    'Quiz':           { bg: '#d6891022', text: '#d68910' },
+    'Maze':           { bg: '#636e7222', text: '#b2bec3' },
+    'Flappy':         { bg: '#27ae6022', text: '#27ae60' },
+    'Tetris':         { bg: '#e67e2222', text: '#e67e22' },
+    'Whack-a-Mole':   { bg: '#e74c3c22', text: '#e74c3c' },
+    'Rhythm':         { bg: '#9b59b622', text: '#9b59b6' },
+    'Fishing':        { bg: '#2980b922', text: '#2980b9' },
+    'Cooking':        { bg: '#e67e2222', text: '#e67e22' },
+    'Farming':        { bg: '#27ae6022', text: '#27ae60' },
+    'Word':           { bg: '#bdc3c722', text: '#bdc3c7' },
+    'Drawing':        { bg: '#9b59b622', text: '#9b59b6' },
+    'Survival':       { bg: '#2c3e5022', text: '#95a5a6' },
+    'Simon Says':     { bg: '#d6891022', text: '#d68910' },
+    'Space':          { bg: '#6c5ce722', text: '#6c5ce7' },
+    'Bubble Shooter': { bg: '#16a08522', text: '#16a085' },
+    'Catch':          { bg: '#d6891022', text: '#d68910' },
 };
 
-const DEFAULT_CATEGORY_COLOR = { bg: '#ffffff11', text: '#a0a0b0', border: '#ffffff22' };
+const DEFAULT_CATEGORY_COLOR = { bg: '#ffffff11', text: '#bdbebe' };
 
 function getCategoryColor(category) {
     return CATEGORY_COLORS[category] || DEFAULT_CATEGORY_COLOR;
 }
 
-// ── Simulated player count (deterministic per game ID) ──────────────────
+// Deterministic player count from game ID
 function getPlayerCount(gameId) {
-    // Deterministic seeded value from game ID
     let s = gameId * 2654435761;
     s = ((s >>> 16) ^ s) * 0x45d9f3b;
     s = ((s >>> 16) ^ s);
-    return (Math.abs(s) % 5000) + 1;
+    return (Math.abs(s) % 5000) + 50;
 }
 
 function formatPlayerCount(count) {
-    if (count >= 1000) {
-        return (count / 1000).toFixed(1).replace('.0', '') + 'K';
-    }
+    if (count >= 1000) return (count / 1000).toFixed(1).replace('.0', '') + 'K';
     return count.toString();
 }
 
-// ── Debounce helper ─────────────────────────────────────────────────────
+// Deterministic like percentage
+function getLikePercent(gameId) {
+    let s = gameId * 1664525 + 1013904223;
+    s = ((s >>> 16) ^ s);
+    return 60 + (Math.abs(s) % 40);
+}
+
+// Debounce
 function debounce(fn, ms) {
     let timer;
     return (...args) => {
@@ -60,7 +64,7 @@ function debounce(fn, ms) {
     };
 }
 
-// ── State ───────────────────────────────────────────────────────────────
+// State
 let allGames = [];
 let filteredGames = [];
 let displayedCount = 0;
@@ -70,12 +74,9 @@ let searchQuery = '';
 let sortMode = 'popular';
 let cleanupFns = [];
 
-// ── Render ──────────────────────────────────────────────────────────────
 export function renderCatalog(container, router) {
-    // Cleanup previous instance
     cleanup();
 
-    // Show loading state immediately while building the catalog
     container.innerHTML = `
         <div class="catalog-loading animate-fade-in">
             <div class="catalog-loading-spinner"></div>
@@ -83,7 +84,6 @@ export function renderCatalog(container, router) {
         </div>
     `;
 
-    // Use requestAnimationFrame to let the loading spinner render before heavy work
     requestAnimationFrame(() => {
         renderCatalogContent(container, router);
     });
@@ -97,7 +97,7 @@ function renderCatalogContent(container, router) {
         <div class="catalog-page animate-fade-in">
             <!-- Search bar -->
             <div class="catalog-search-wrap">
-                <svg class="catalog-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="catalog-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"/>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
@@ -114,7 +114,7 @@ function renderCatalogContent(container, router) {
                 `).join('')}
             </div>
 
-            <!-- Sort and count row -->
+            <!-- Sort and count -->
             <div class="catalog-toolbar">
                 <span class="catalog-count" id="catalog-count"></span>
                 <div class="catalog-sort-wrap">
@@ -129,14 +129,13 @@ function renderCatalogContent(container, router) {
             <!-- Game card grid -->
             <div class="catalog-grid" id="catalog-grid"></div>
 
-            <!-- Loading sentinel for infinite scroll -->
+            <!-- Loading sentinel -->
             <div class="catalog-loader" id="catalog-loader">
                 <div class="catalog-spinner"></div>
             </div>
         </div>
     `;
 
-    // DOM refs
     const searchInput = container.querySelector('#catalog-search');
     const categoriesRow = container.querySelector('#catalog-categories');
     const sortSelect = container.querySelector('#catalog-sort');
@@ -144,22 +143,18 @@ function renderCatalogContent(container, router) {
     const loader = container.querySelector('#catalog-loader');
     const countEl = container.querySelector('#catalog-count');
 
-    // Reset state
     activeCategory = null;
     searchQuery = '';
     sortMode = 'popular';
     displayedCount = 0;
 
-    // ── Filter + Sort logic ─────────────────────────────────────────────
     function applyFilters() {
         let games = allGames;
 
-        // Category filter
         if (activeCategory) {
             games = games.filter(g => g.category === activeCategory);
         }
 
-        // Search filter
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             games = games.filter(g =>
@@ -168,13 +163,11 @@ function renderCatalogContent(container, router) {
             );
         }
 
-        // Sort
         if (sortMode === 'alpha') {
             games = [...games].sort((a, b) => a.name.localeCompare(b.name));
         } else if (sortMode === 'category') {
             games = [...games].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
         } else {
-            // Popular: sort by simulated player count desc
             games = [...games].sort((a, b) => getPlayerCount(b.id) - getPlayerCount(a.id));
         }
 
@@ -192,22 +185,15 @@ function renderCatalogContent(container, router) {
     }
 
     function updateLoaderVisibility() {
-        if (displayedCount >= filteredGames.length) {
-            loader.style.display = 'none';
-        } else {
-            loader.style.display = 'flex';
-        }
+        loader.style.display = displayedCount >= filteredGames.length ? 'none' : 'flex';
     }
 
-    // ── Render a batch of cards ─────────────────────────────────────────
     function loadMore() {
         const end = Math.min(displayedCount + BATCH_SIZE, filteredGames.length);
         const fragment = document.createDocumentFragment();
 
         for (let i = displayedCount; i < end; i++) {
-            const game = filteredGames[i];
-            const card = createGameCard(game);
-            fragment.appendChild(card);
+            fragment.appendChild(createGameCard(filteredGames[i]));
         }
 
         grid.appendChild(fragment);
@@ -220,8 +206,9 @@ function renderCatalogContent(container, router) {
         card.className = 'catalog-card';
         card.dataset.gameId = game.id;
 
-        const catColor = getCategoryColor(game.category);
         const players = getPlayerCount(game.id);
+        const likePercent = getLikePercent(game.id);
+        const catColor = getCategoryColor(game.category);
 
         card.innerHTML = `
             <div class="catalog-card-thumb">
@@ -230,10 +217,14 @@ function renderCatalogContent(container, router) {
             <div class="catalog-card-info">
                 <div class="catalog-card-name" title="${game.name}">${game.name}</div>
                 <div class="catalog-card-meta">
-                    <span class="catalog-card-badge" style="background:${catColor.bg};color:${catColor.text};border:1px solid ${catColor.border}">
-                        ${game.category}
+                    <span class="catalog-card-players">
+                        <span class="catalog-card-dot"></span>
+                        ${formatPlayerCount(players)}
                     </span>
-                    <span class="catalog-card-players">${formatPlayerCount(players)} spielen</span>
+                    <span class="catalog-card-like">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
+                        ${likePercent}%
+                    </span>
                 </div>
             </div>
         `;
@@ -245,18 +236,15 @@ function renderCatalogContent(container, router) {
         return card;
     }
 
-    // ── Event: Search ───────────────────────────────────────────────────
     const onSearch = debounce((e) => {
         searchQuery = e.target.value.trim();
         applyFilters();
     }, 300);
     searchInput.addEventListener('input', onSearch);
 
-    // ── Event: Category pills ───────────────────────────────────────────
     function onCategoryClick(e) {
         const pill = e.target.closest('.catalog-pill');
         if (!pill) return;
-
         categoriesRow.querySelectorAll('.catalog-pill').forEach(p => p.classList.remove('active'));
         pill.classList.add('active');
         activeCategory = pill.dataset.category || null;
@@ -264,14 +252,12 @@ function renderCatalogContent(container, router) {
     }
     categoriesRow.addEventListener('click', onCategoryClick);
 
-    // ── Event: Sort ─────────────────────────────────────────────────────
     function onSortChange(e) {
         sortMode = e.target.value;
         applyFilters();
     }
     sortSelect.addEventListener('change', onSortChange);
 
-    // ── Infinite scroll via IntersectionObserver ─────────────────────────
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && displayedCount < filteredGames.length) {
             loadMore();
@@ -279,7 +265,6 @@ function renderCatalogContent(container, router) {
     }, { rootMargin: '200px' });
     observer.observe(loader);
 
-    // ── Cleanup registration ────────────────────────────────────────────
     cleanupFns.push(() => {
         searchInput.removeEventListener('input', onSearch);
         categoriesRow.removeEventListener('click', onCategoryClick);
@@ -287,7 +272,6 @@ function renderCatalogContent(container, router) {
         observer.disconnect();
     });
 
-    // Initial load
     applyFilters();
 }
 
