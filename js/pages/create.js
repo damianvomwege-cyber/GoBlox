@@ -1695,8 +1695,10 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
     const propsEl = editorEl.querySelector('#ed2d-props');
     const bodyEl = editorEl.querySelector('#ed2d-body');
 
-    // ── Script tab placeholder ──
+    // ── Script editor state ──
     let scriptPlaceholderEl = null;
+    let scriptEditorInstance = null;
+    let scriptEditorEl = null;
 
     // ── Build Palette ──
     function buildPalette() {
@@ -1736,7 +1738,7 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
 
     // ── Tab handling ──
     editorEl.querySelectorAll('.editor-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
+        tab.addEventListener('click', async () => {
             const tabName = tab.dataset.tab;
             editorEl.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
@@ -1746,18 +1748,38 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
                 canvasWrap.style.display = 'none';
                 paletteEl.style.display = 'none';
                 propsEl.style.display = 'none';
-                if (!scriptPlaceholderEl) {
-                    scriptPlaceholderEl = document.createElement('div');
-                    scriptPlaceholderEl.className = 'editor-script-placeholder';
-                    scriptPlaceholderEl.innerHTML = '<div class="editor-script-placeholder-icon">\ud83d\udcdc</div><div>Visual Scripting (kommt bald)</div>';
-                    bodyEl.appendChild(scriptPlaceholderEl);
+                if (scriptPlaceholderEl) scriptPlaceholderEl.style.display = 'none';
+                if (!scriptEditorInstance) {
+                    // Lazy-load CSS for the script editor
+                    if (!document.querySelector('link[href="css/script-editor.css"]')) {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.href = 'css/script-editor.css';
+                        document.head.appendChild(link);
+                    }
+                    const { ScriptEditor } = await import('../editor/script-engine.js');
+                    scriptEditorEl = document.createElement('div');
+                    scriptEditorEl.className = 'script-editor';
+                    scriptEditorEl.style.flex = '1';
+                    bodyEl.appendChild(scriptEditorEl);
+                    scriptEditorInstance = new ScriptEditor(scriptEditorEl, objects2D);
+                    scriptEditorInstance.render();
+                    // Load pending scripts from a previously loaded game
+                    if (loadGame2D._pendingScripts) {
+                        scriptEditorInstance.load(loadGame2D._pendingScripts);
+                        loadGame2D._pendingScripts = null;
+                    }
+                } else {
+                    // Refresh object selects in case objects changed in Build tab
+                    scriptEditorInstance.refreshObjectSelects();
                 }
-                scriptPlaceholderEl.style.display = 'flex';
+                if (scriptEditorEl) scriptEditorEl.style.display = 'flex';
             } else {
                 canvasWrap.style.display = '';
                 paletteEl.style.display = '';
                 propsEl.style.display = '';
                 if (scriptPlaceholderEl) scriptPlaceholderEl.style.display = 'none';
+                if (scriptEditorEl) scriptEditorEl.style.display = 'none';
             }
         });
     });
@@ -2404,6 +2426,7 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
             type: 'platformer',
             objects,
             settings,
+            scripts: scriptEditorInstance ? scriptEditorInstance.serialize() : null,
             createdAt: all[id]?.createdAt || Date.now(),
             updatedAt: Date.now(),
             published: all[id]?.published || false,
@@ -2451,6 +2474,14 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
                 const idx = THEMES_2D.findIndex(t => t.name === gameSettings.theme.name);
                 if (idx >= 0) themeInput.value = idx;
             }
+        }
+        // Restore scripts if the script editor is already initialized
+        if (data.scripts && scriptEditorInstance) {
+            scriptEditorInstance.load(data.scripts);
+        }
+        // Store scripts data for lazy loading (script editor may not exist yet)
+        if (data.scripts) {
+            loadGame2D._pendingScripts = data.scripts;
         }
         return true;
     }
@@ -2614,6 +2645,11 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         window.removeEventListener('keydown', onKeyDown2D);
         window.removeEventListener('resize', onResize2D);
+        if (scriptEditorInstance) {
+            scriptEditorInstance.destroy();
+            scriptEditorInstance = null;
+            scriptEditorEl = null;
+        }
         if (editorEl.parentNode) editorEl.remove();
     }
 
