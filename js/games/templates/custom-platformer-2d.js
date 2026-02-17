@@ -101,11 +101,46 @@ export class CustomPlatformer2D extends BaseGame {
 
         // Win callback (set externally)
         this.onWin = null;
+
+        // ── Build object map for script runtime ──
+        this._objectMap = {};
+        for (const arr of [this.platforms, this.hazards, this.collectibles, this.enemies, this.bouncePads, this.checkpoints]) {
+            for (const obj of arr) {
+                if (obj.id) this._objectMap[obj.id] = obj;
+            }
+        }
+        if (this.goalObj && this.goalObj.id) this._objectMap[this.goalObj.id] = this.goalObj;
+
+        // ── Script runtime (lazy-loaded on first update frame) ──
+        this._scriptConfig = cfg.scripts || null;
+        this._scriptRuntime = null;
+        this._scriptsInitialized = false;
+    }
+
+    // ── Override stop for script cleanup ──
+    stop() {
+        if (this._scriptRuntime) {
+            this._scriptRuntime.destroy();
+            this._scriptRuntime = null;
+        }
+        super.stop();
     }
 
     // ── Update ──────────────────────────────────────────────────────────
     update(dt) {
         if (this.gameOver) return;
+
+        // ── Script runtime: lazy-init on first frame, then update ──
+        if (!this._scriptsInitialized && this._scriptConfig?.chains?.length) {
+            this._scriptsInitialized = true;
+            import('../editor/script-runtime.js').then(({ ScriptRuntime }) => {
+                this._scriptRuntime = new ScriptRuntime(this, this._scriptConfig, this._objectMap);
+                this._scriptRuntime.init();
+            });
+        }
+        if (this._scriptRuntime) {
+            this._scriptRuntime.update(dt);
+        }
 
         const W = this.canvas.width;
         const H = this.canvas.height;
@@ -135,6 +170,7 @@ export class CustomPlatformer2D extends BaseGame {
         const ph = this.playerH;
 
         for (const plat of this.platforms) {
+            if (plat.hidden) continue;
             if (plat.type === 'ramp') {
                 // Ramp: slope collision
                 if (px + pw > plat.x && px < plat.x + plat.w) {
@@ -185,6 +221,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Hazard collision ──
         for (const haz of this.hazards) {
+            if (haz.hidden) continue;
             if (this.rectsOverlap(px, py, pw, ph, haz.x, haz.y, haz.w, haz.h)) {
                 this.respawn();
                 return;
@@ -193,7 +230,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Collectible collision ──
         for (const col of this.collectibles) {
-            if (col.collected) continue;
+            if (col.collected || col.hidden) continue;
             if (this.rectsOverlap(px, py, pw, ph, col.x, col.y, col.w, col.h)) {
                 col.collected = true;
                 this.score += col.value;
@@ -214,6 +251,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Enemy movement & collision ──
         for (const en of this.enemies) {
+            if (en.hidden) continue;
             const speed = (en.behaviors && en.behaviors.speed) || 2;
             const range = (en.behaviors && en.behaviors.range) || 100;
 
@@ -240,6 +278,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Bounce pads ──
         for (const bp of this.bouncePads) {
+            if (bp.hidden) continue;
             if (this.rectsOverlap(px, py, pw, ph, bp.x, bp.y, bp.w, bp.h) && this.playerVY >= 0) {
                 this.playerVY = -this.gravity * 900;
                 this.isGrounded = false;
@@ -259,6 +298,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Checkpoints ──
         for (const cp of this.checkpoints) {
+            if (cp.hidden) continue;
             if (this.rectsOverlap(px, py, pw, ph, cp.x, cp.y, cp.w, cp.h)) {
                 if (!cp.activated) {
                     cp.activated = true;
@@ -387,6 +427,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Render platforms (platform/ground) ──
         for (const plat of this.platforms) {
+            if (plat.hidden) continue;
             if (plat.x + plat.w < this.cameraX - 50 || plat.x > this.cameraX + W + 50) continue;
 
             if (plat.type === 'ramp') {
@@ -431,6 +472,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Render hazards ──
         for (const haz of this.hazards) {
+            if (haz.hidden) continue;
             if (haz.x + haz.w < this.cameraX - 50 || haz.x > this.cameraX + W + 50) continue;
 
             if (haz.type === 'spike') {
@@ -457,7 +499,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Render collectibles (uncollected only) ──
         for (const col of this.collectibles) {
-            if (col.collected) continue;
+            if (col.collected || col.hidden) continue;
             if (col.x + col.w < this.cameraX - 50 || col.x > this.cameraX + W + 50) continue;
 
             const cx = col.x + col.w / 2;
@@ -478,6 +520,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Render enemies ──
         for (const en of this.enemies) {
+            if (en.hidden) continue;
             if (en.x + en.w < this.cameraX - 50 || en.x > this.cameraX + W + 50) continue;
 
             ctx.fillStyle = en.color;
@@ -521,6 +564,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Render bounce pads ──
         for (const bp of this.bouncePads) {
+            if (bp.hidden) continue;
             if (bp.x + bp.w < this.cameraX - 50 || bp.x > this.cameraX + W + 50) continue;
 
             ctx.fillStyle = bp.color;
@@ -539,6 +583,7 @@ export class CustomPlatformer2D extends BaseGame {
 
         // ── Render checkpoints ──
         for (const cp of this.checkpoints) {
+            if (cp.hidden) continue;
             if (cp.x + cp.w < this.cameraX - 50 || cp.x > this.cameraX + W + 50) continue;
 
             // Flag pole

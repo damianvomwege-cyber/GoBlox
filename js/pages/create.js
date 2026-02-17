@@ -2404,6 +2404,7 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
 
     function serializeObjects2D() {
         return objects2D.map(o => ({
+            id: o.id,
             type: o.type,
             x: o.x,
             y: o.y,
@@ -2449,7 +2450,7 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
         if (data.objects) {
             data.objects.forEach(o => {
                 objects2D.push({
-                    id: uid2D(),
+                    id: o.id || uid2D(),
                     type: o.type,
                     x: o.x,
                     y: o.y,
@@ -2620,6 +2621,7 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
                 gravity: gameSettings.gravity,
                 scrollSpeed: gameSettings.scrollSpeed,
                 objects: objects2D.map(o => ({ ...o, behaviors: { ...o.behaviors } })),
+                scripts: scriptEditorInstance ? scriptEditorInstance.serialize() : null,
             });
             testGame.start();
             testGame.onWin = () => {
