@@ -263,7 +263,7 @@ export function renderGame(container, router, gameId) {
     }
 
     // ── Start game ──────────────────────────────────────────────────────
-    function startGame() {
+    async function startGame() {
         overlay.classList.add('hidden');
         // Hide GoBux reward from previous round
         const rewardEl = container.querySelector('#gobux-reward');
@@ -292,7 +292,7 @@ export function renderGame(container, router, gameId) {
             container3D.innerHTML = '';
 
             try {
-                currentGame = GameRegistry.createGameInstance(game, container3D);
+                currentGame = await GameRegistry.createGameInstance(game, container3D);
             } catch (err) {
                 console.error('Failed to create 3D game instance:', err);
                 showGameError(canvasWrap, 'Das 3D-Spiel konnte nicht geladen werden.');
@@ -302,7 +302,7 @@ export function renderGame(container, router, gameId) {
             sizeCanvas();
 
             try {
-                currentGame = GameRegistry.createGameInstance(game, canvas);
+                currentGame = await GameRegistry.createGameInstance(game, canvas);
             } catch (err) {
                 console.error('Failed to create game instance:', err);
                 showGameError(canvasWrap, 'Das Spiel konnte nicht geladen werden.');
