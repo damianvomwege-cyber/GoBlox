@@ -203,6 +203,7 @@ class PlatformerGame3D extends BaseGame3D {
         this.gravity = -28;
         this.cameraDistance = 12;
         this.cameraHeight = 6;
+        this.cameraAngleX = Math.PI; // face camera toward platforms (-Z direction)
         this.cameraAngleY = 0.35;
 
         // Sky and fog

@@ -629,7 +629,7 @@ export class BaseGame3D {
     updateCamera(dt) {
         // Apply mouse movement to camera angles
         if (this.pointerLocked) {
-            this.cameraAngleX += this.mouseMovement.x * this.cameraSensitivity;
+            this.cameraAngleX -= this.mouseMovement.x * this.cameraSensitivity;
             this.cameraAngleY += this.mouseMovement.y * this.cameraSensitivity;
             // Clamp vertical angle
             this.cameraAngleY = Math.max(-0.2, Math.min(1.2, this.cameraAngleY));

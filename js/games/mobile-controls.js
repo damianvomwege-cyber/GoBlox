@@ -518,7 +518,7 @@ export class MobileControls3D {
 
             // Feed camera movement directly into the game
             if (this.game) {
-                this.game.cameraAngleX += dx * this.game.cameraSensitivity * 2;
+                this.game.cameraAngleX -= dx * this.game.cameraSensitivity * 2;
                 this.game.cameraAngleY += dy * this.game.cameraSensitivity * 2;
                 this.game.cameraAngleY = Math.max(-0.2, Math.min(1.2, this.game.cameraAngleY));
             }
