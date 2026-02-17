@@ -248,9 +248,20 @@ router
         mod.renderSettings(content, router);
     }))
 
+    .on('/admin', requireAuth(async (thisNav) => {
+        cleanupAll();
+        const [mod] = await Promise.all([
+            import('./pages/admin.js'),
+            loadCSS('css/admin.css'),
+        ]);
+        if (isStale(thisNav)) return;
+        mod.renderAdmin(content, router);
+    }))
+
     .on('/create', async (...params) => {
         if (!Auth.currentUser()) { router.navigate('#/login'); return; }
         const thisNav = ++navId;
+        cleanupCreate();
         cleanupGame();
         cleanupAvatars();
         sidebar.classList.add('hidden');

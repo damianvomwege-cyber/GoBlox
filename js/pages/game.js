@@ -44,8 +44,28 @@ export function renderGame(container, router, gameId) {
     // Cleanup any previous game
     cleanup();
 
-    // Lookup the game
-    const game = GameRegistry.getGame(gameId);
+    // Lookup the game from registry first
+    let game = GameRegistry.getGame(gameId);
+    let isCustomGame = false;
+    let customGameData = null;
+
+    // If not found in registry, check custom games in localStorage
+    if (!game) {
+        const created = JSON.parse(localStorage.getItem('goblox_created_games') || '{}');
+        customGameData = created[gameId];
+        if (customGameData && customGameData.published) {
+            isCustomGame = true;
+            game = {
+                id: gameId,
+                name: customGameData.name || 'Benutzerdefiniertes Spiel',
+                is3D: customGameData.template !== 'platformer-2d',
+                category: 'Eigene Spiele',
+                config: customGameData,
+                templateName: null,
+            };
+        }
+    }
+
     if (!game) {
         container.innerHTML = `
             <div class="game-page animate-fade-in">
@@ -166,6 +186,82 @@ export function renderGame(container, router, gameId) {
         window.addEventListener('resize', resizeHandler);
     }
 
+    // ── Helper: start score polling ──────────────────────────────────────
+    function startScorePolling() {
+        if (scoreInterval) clearInterval(scoreInterval);
+        scoreInterval = setInterval(() => {
+            if (currentGame && !currentGame.gameOver) {
+                scoreEl.textContent = `Score: ${currentGame.score}`;
+            }
+        }, 100);
+    }
+
+    // ── Helper: finalize game instance after creation ────────────────────
+    function finalizeGameStart() {
+        currentGame.onGameOver = (score) => {
+            showGameOver(score);
+        };
+
+        try {
+            currentGame.start();
+        } catch (err) {
+            console.error('Game crashed on start:', err);
+            showGameError(canvasWrap, 'Das Spiel ist unerwartet abgestuerzt.');
+            currentGame = null;
+            return;
+        }
+
+        // Set up mobile controls after game starts
+        if (mobile && currentGame) {
+            setupMobileControls();
+        }
+
+        startScorePolling();
+    }
+
+    // ── Start custom game (2D platformer or 3D obby) ────────────────────
+    function startCustomGame() {
+        if (customGameData.template === 'platformer-2d') {
+            // 2D custom platformer
+            import('../games/templates/custom-platformer-2d.js').then(({ CustomPlatformer2D }) => {
+                sizeCanvas();
+                try {
+                    currentGame = new CustomPlatformer2D(canvas, {
+                        theme: customGameData.settings?.theme || { primary: '#00ff87', secondary: '#60efff', bg: '#0a0a2e', name: 'Neon' },
+                        gravity: customGameData.settings?.gravity || 1.0,
+                        scrollSpeed: customGameData.settings?.scrollSpeed || 1.5,
+                        objects: customGameData.objects || [],
+                        scripts: customGameData.scripts || null,
+                    });
+                } catch (err) {
+                    console.error('Failed to create custom 2D game:', err);
+                    showGameError(canvasWrap, 'Das Spiel konnte nicht geladen werden.');
+                    return;
+                }
+                finalizeGameStart();
+            }).catch(err => {
+                console.error('Failed to load CustomPlatformer2D module:', err);
+                showGameError(canvasWrap, 'Das Spiel konnte nicht geladen werden.');
+            });
+        } else {
+            // 3D custom game (obby-3d or similar)
+            import('../games/templates/custom.js').then(({ CustomGame3D }) => {
+                container3D.innerHTML = '';
+                try {
+                    currentGame = new CustomGame3D(container3D, customGameData);
+                } catch (err) {
+                    console.error('Failed to create custom 3D game:', err);
+                    showGameError(canvasWrap, 'Das 3D-Spiel konnte nicht geladen werden.');
+                    return;
+                }
+                finalizeGameStart();
+            }).catch(err => {
+                console.error('Failed to load CustomGame3D module:', err);
+                showGameError(canvasWrap, 'Das 3D-Spiel konnte nicht geladen werden.');
+            });
+        }
+    }
+
     // ── Start game ──────────────────────────────────────────────────────
     function startGame() {
         overlay.classList.add('hidden');
@@ -184,6 +280,13 @@ export function renderGame(container, router, gameId) {
             currentGame = null;
         }
 
+        // ── Custom game path ──
+        if (isCustomGame) {
+            startCustomGame();
+            return;
+        }
+
+        // ── Registry game path ──
         if (is3D) {
             // Clear container for fresh 3D game
             container3D.innerHTML = '';
@@ -207,43 +310,21 @@ export function renderGame(container, router, gameId) {
             }
         }
 
-        // Set game over callback
-        currentGame.onGameOver = (score) => {
-            showGameOver(score);
-        };
-
-        try {
-            currentGame.start();
-        } catch (err) {
-            console.error('Game crashed on start:', err);
-            showGameError(canvasWrap, 'Das Spiel ist unerwartet abgestuerzt.');
-            currentGame = null;
-            return;
-        }
-
-        // Set up mobile controls after game starts
-        if (mobile && currentGame) {
-            setupMobileControls();
-        }
-
-        // Score polling
-        if (scoreInterval) clearInterval(scoreInterval);
-        scoreInterval = setInterval(() => {
-            if (currentGame && !currentGame.gameOver) {
-                scoreEl.textContent = `Score: ${currentGame.score}`;
-            }
-        }, 100);
+        finalizeGameStart();
     }
 
     // ── Mobile Controls Setup ────────────────────────────────────────────
     function setupMobileControls() {
         if (is3D) {
             // 3D games get joystick + camera touch + jump
-            mobileControls = new MobileControls3D(container3D, currentGame, game.templateName);
+            const tmplName = game.templateName || (isCustomGame ? 'custom' : null);
+            mobileControls = new MobileControls3D(container3D, currentGame, tmplName);
             mobileControls.setup();
         } else {
             // 2D games get controls based on template type
-            const controlType = getControlType(game.templateName);
+            // Custom platformer-2d games use 'Platformer' control type (tap)
+            const tmplName = game.templateName || (isCustomGame ? 'Platformer' : null);
+            const controlType = getControlType(tmplName);
             mobileControls = new MobileControls(canvasWrap, currentGame, controlType);
             mobileControls.setup();
         }

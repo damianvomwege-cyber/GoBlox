@@ -27,6 +27,7 @@ const CATEGORY_COLORS = {
     'Space':          { bg: '#6c5ce722', text: '#6c5ce7' },
     'Bubble Shooter': { bg: '#16a08522', text: '#16a085' },
     'Catch':          { bg: '#d6891022', text: '#d68910' },
+    'Eigene Spiele':  { bg: '#f39c1222', text: '#f39c12' },
 };
 
 const DEFAULT_CATEGORY_COLOR = { bg: '#ffffff11', text: '#bdbebe' };
@@ -37,6 +38,14 @@ function getCategoryColor(category) {
 
 // Deterministic player count from game ID
 function getPlayerCount(gameId) {
+    // Custom games use string IDs — hash the string for a numeric seed
+    if (typeof gameId === 'string') {
+        let hash = 0;
+        for (let i = 0; i < gameId.length; i++) {
+            hash = ((hash << 5) - hash + gameId.charCodeAt(i)) | 0;
+        }
+        return (Math.abs(hash) % 200) + 5;
+    }
     let s = gameId * 2654435761;
     s = ((s >>> 16) ^ s) * 0x45d9f3b;
     s = ((s >>> 16) ^ s);
@@ -50,6 +59,13 @@ function formatPlayerCount(count) {
 
 // Deterministic like percentage
 function getLikePercent(gameId) {
+    if (typeof gameId === 'string') {
+        let hash = 0;
+        for (let i = 0; i < gameId.length; i++) {
+            hash = ((hash << 5) - hash + gameId.charCodeAt(i)) | 0;
+        }
+        return 70 + (Math.abs(hash) % 30);
+    }
     let s = gameId * 1664525 + 1013904223;
     s = ((s >>> 16) ^ s);
     return 60 + (Math.abs(s) % 40);
@@ -62,6 +78,28 @@ function debounce(fn, ms) {
         clearTimeout(timer);
         timer = setTimeout(() => fn(...args), ms);
     };
+}
+
+// ── Load published custom games from localStorage ──
+function getCustomGames() {
+    try {
+        const created = JSON.parse(localStorage.getItem('goblox_created_games') || '{}');
+        return Object.entries(created)
+            .filter(([_, g]) => g.published)
+            .map(([id, g]) => ({
+                id: id,
+                name: g.name || 'Benutzerdefiniertes Spiel',
+                category: 'Eigene Spiele',
+                description: g.template === 'platformer-2d' ? 'Benutzerdefinierter Platformer' : 'Benutzerdefiniertes 3D Spiel',
+                is3D: g.template !== 'platformer-2d',
+                isCustom: true,
+                creatorName: g.creatorName || 'Unbekannt',
+                thumbnail: null,  // no thumbnail for custom games
+                templateType: g.template,
+            }));
+    } catch (e) {
+        return [];
+    }
 }
 
 // State
@@ -90,8 +128,16 @@ export function renderCatalog(container, router) {
 }
 
 function renderCatalogContent(container, router) {
-    allGames = GameRegistry.getAllGames();
+    // Registry games + custom games
+    const registryGames = GameRegistry.getAllGames();
+    const customGames = getCustomGames();
+    allGames = [...registryGames, ...customGames];
+
+    // Build categories including custom games
     const categories = GameRegistry.getCategories();
+    if (customGames.length > 0) {
+        categories.push({ name: 'Eigene Spiele', count: customGames.length });
+    }
 
     container.innerHTML = `
         <div class="catalog-page animate-fade-in">
@@ -159,7 +205,8 @@ function renderCatalogContent(container, router) {
             const q = searchQuery.toLowerCase();
             games = games.filter(g =>
                 g.name.toLowerCase().includes(q) ||
-                g.category.toLowerCase().includes(q)
+                g.category.toLowerCase().includes(q) ||
+                (g.creatorName && g.creatorName.toLowerCase().includes(q))
             );
         }
 
@@ -168,7 +215,13 @@ function renderCatalogContent(container, router) {
         } else if (sortMode === 'category') {
             games = [...games].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
         } else {
-            games = [...games].sort((a, b) => getPlayerCount(b.id) - getPlayerCount(a.id));
+            // Popular: custom games go to the front, then by player count
+            games = [...games].sort((a, b) => {
+                // Custom games first when no filter
+                if (a.isCustom && !b.isCustom) return -1;
+                if (!a.isCustom && b.isCustom) return 1;
+                return getPlayerCount(b.id) - getPlayerCount(a.id);
+            });
         }
 
         filteredGames = games;
@@ -203,31 +256,61 @@ function renderCatalogContent(container, router) {
 
     function createGameCard(game) {
         const card = document.createElement('div');
-        card.className = 'catalog-card';
+        card.className = 'catalog-card' + (game.isCustom ? ' catalog-card-custom' : '');
         card.dataset.gameId = game.id;
 
         const players = getPlayerCount(game.id);
         const likePercent = getLikePercent(game.id);
         const catColor = getCategoryColor(game.category);
 
-        card.innerHTML = `
-            <div class="catalog-card-thumb">
-                <img src="${game.thumbnail}" alt="${game.name}" loading="lazy" />
-            </div>
-            <div class="catalog-card-info">
-                <div class="catalog-card-name" title="${game.name}">${game.name}</div>
-                <div class="catalog-card-meta">
-                    <span class="catalog-card-players">
-                        <span class="catalog-card-dot"></span>
-                        ${formatPlayerCount(players)}
-                    </span>
-                    <span class="catalog-card-like">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
-                        ${likePercent}%
-                    </span>
+        if (game.isCustom) {
+            // Custom game card with generated placeholder thumb
+            const templateLabel = game.templateType === 'platformer-2d' ? '2D Platformer' : '3D Obby';
+            const accentColor = game.templateType === 'platformer-2d' ? '#00ff87' : '#60efff';
+            card.innerHTML = `
+                <div class="catalog-card-thumb catalog-card-thumb-custom" style="background: linear-gradient(135deg, ${accentColor}33, ${accentColor}11);">
+                    <div class="catalog-card-custom-icon" style="color:${accentColor};">
+                        ${game.templateType === 'platformer-2d'
+                            ? '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 16v-4l2-2 2 2 2-4 2 4"/></svg>'
+                            : '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'
+                        }
+                    </div>
+                    <span class="catalog-card-custom-badge">${templateLabel}</span>
                 </div>
-            </div>
-        `;
+                <div class="catalog-card-info">
+                    <div class="catalog-card-name" title="${game.name}">${game.name}</div>
+                    <div class="catalog-card-meta">
+                        <span class="catalog-card-creator">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            ${game.creatorName}
+                        </span>
+                        <span class="catalog-card-like">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
+                            ${likePercent}%
+                        </span>
+                    </div>
+                </div>
+            `;
+        } else {
+            card.innerHTML = `
+                <div class="catalog-card-thumb">
+                    <img src="${game.thumbnail}" alt="${game.name}" loading="lazy" />
+                </div>
+                <div class="catalog-card-info">
+                    <div class="catalog-card-name" title="${game.name}">${game.name}</div>
+                    <div class="catalog-card-meta">
+                        <span class="catalog-card-players">
+                            <span class="catalog-card-dot"></span>
+                            ${formatPlayerCount(players)}
+                        </span>
+                        <span class="catalog-card-like">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
+                            ${likePercent}%
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
 
         card.addEventListener('click', () => {
             router.navigate(`#/game/${game.id}`);

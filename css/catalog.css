@@ -287,3 +287,56 @@
         gap: 8px;
     }
 }
+
+/* ── Custom Game Cards ── */
+
+.catalog-card-custom {
+    border: 1px solid rgba(243, 156, 18, 0.25);
+}
+
+.catalog-card-custom:hover {
+    border-color: rgba(243, 156, 18, 0.45);
+}
+
+.catalog-card-thumb-custom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--bg-primary);
+}
+
+.catalog-card-custom-icon {
+    opacity: 0.7;
+    transition: opacity var(--transition-fast);
+}
+
+.catalog-card-custom:hover .catalog-card-custom-icon {
+    opacity: 1;
+}
+
+.catalog-card-custom-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+}
+
+.catalog-card-creator {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.catalog-card-creator svg {
+    flex-shrink: 0;
+    opacity: 0.6;
+}

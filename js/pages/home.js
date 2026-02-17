@@ -89,6 +89,19 @@ export function renderHome(container, router) {
         })
         .filter(Boolean);
 
+    // User-created games
+    let myGames = [];
+    try {
+        const created = JSON.parse(localStorage.getItem('goblox_created_games') || '{}');
+        myGames = Object.entries(created).map(([id, g]) => ({
+            id,
+            name: g.name || 'Unbenannt',
+            template: g.template,
+            published: !!g.published,
+            updatedAt: g.updatedAt || g.createdAt || 0,
+        })).sort((a, b) => b.updatedAt - a.updatedAt);
+    } catch (e) { /* ignore */ }
+
     const heroPlayers = getPlayerCount(heroGame.id);
     const heroLike = getLikePercent(heroGame.id);
 
@@ -113,6 +126,19 @@ export function renderHome(container, router) {
                     </div>
                 </div>
             </div>
+
+            ${myGames.length > 0 ? `
+            <!-- My Games -->
+            <section class="home-section">
+                <div class="home-section-header">
+                    <h2>Meine Spiele</h2>
+                    <a href="#/create" class="home-see-all">Neues Spiel</a>
+                </div>
+                <div class="home-scroll-row">
+                    ${myGames.map(g => myGameCard(g)).join('')}
+                </div>
+            </section>
+            ` : ''}
 
             ${recentGameObjects.length > 0 ? `
             <!-- Continue Playing -->
@@ -215,6 +241,25 @@ export function renderHome(container, router) {
         });
     });
 
+    // My game card button clicks
+    container.querySelectorAll('.home-mygame-card').forEach(card => {
+        const gameId = card.dataset.gameId;
+        const editBtn = card.querySelector('.home-mygame-edit');
+        const playBtn = card.querySelector('.home-mygame-play');
+        if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                router.navigate(`#/create/${gameId}`);
+            });
+        }
+        if (playBtn) {
+            playBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                router.navigate(`#/game/${gameId}`);
+            });
+        }
+    });
+
     // Category card clicks
     container.querySelectorAll('.home-cat-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -244,6 +289,35 @@ function gameCard(game) {
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
                         ${likePercent}%
                     </span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function myGameCard(game) {
+    const templateLabel = game.template === 'platformer-2d' ? '2D Platformer' : '3D Obby';
+    const accentColor = game.template === 'platformer-2d' ? '#00ff87' : '#60efff';
+    const statusBadge = game.published
+        ? '<span class="home-mygame-status home-mygame-published">Live</span>'
+        : '<span class="home-mygame-status home-mygame-draft">Entwurf</span>';
+    return `
+        <div class="home-mygame-card" data-game-id="${game.id}">
+            <div class="home-mygame-thumb" style="background: linear-gradient(135deg, ${accentColor}33, ${accentColor}11);">
+                <span class="home-mygame-type" style="color:${accentColor};">${templateLabel}</span>
+                ${statusBadge}
+            </div>
+            <div class="home-mygame-info">
+                <div class="home-mygame-name">${game.name}</div>
+                <div class="home-mygame-actions">
+                    <button class="home-mygame-edit" title="Bearbeiten">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    ${game.published ? `
+                    <button class="home-mygame-play" title="Spielen">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                    ` : ''}
                 </div>
             </div>
         </div>
