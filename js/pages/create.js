@@ -367,6 +367,8 @@ export function renderCreate(container, router) {
             const tmpl = TEMPLATES.find(t => t.id === template);
             if (tmpl && tmpl.editor === '3d') {
                 buildEditor3D(container, router, user, editingGameId);
+            } else if (template === 'platformer-2d') {
+                buildEditorPlatformer2D(container, router, user, editingGameId);
             } else {
                 showPlaceholder(container, router, template);
             }
@@ -418,6 +420,8 @@ function showTemplatePicker(container, router, user) {
 
             if (tmpl.editor === '3d') {
                 buildEditor3D(container, router, user, null);
+            } else if (templateId === 'platformer-2d') {
+                buildEditorPlatformer2D(container, router, user, null);
             } else {
                 showPlaceholder(container, router, templateId);
             }
@@ -1514,4 +1518,1031 @@ function buildEditor3D(container, router, user, editingGameId) {
 
     // Store cleanup for external use
     renderCreate._cleanup = cleanup;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 2D Platformer Level Editor
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── 2D Themes (subset of platformer.js themes) ──
+const THEMES_2D = [
+    { name: 'Neon',     primary: '#00ff87', secondary: '#60efff', bg: '#0a0a2e' },
+    { name: 'Lava',     primary: '#ff6b35', secondary: '#ffd700', bg: '#1a0a00' },
+    { name: 'Ocean',    primary: '#0077b6', secondary: '#90e0ef', bg: '#03045e' },
+    { name: 'Forest',   primary: '#2d6a4f', secondary: '#95d5b2', bg: '#081c15' },
+    { name: 'Candy',    primary: '#ff69b4', secondary: '#ffb6c1', bg: '#2b0012' },
+    { name: 'Midnight', primary: '#7b2ff7', secondary: '#c084fc', bg: '#0f0720' },
+    { name: 'Retro',    primary: '#f72585', secondary: '#4cc9f0', bg: '#1a1a2e' },
+    { name: 'Desert',   primary: '#e9c46a', secondary: '#f4a261', bg: '#1d1306' },
+    { name: 'Arctic',   primary: '#a8dadc', secondary: '#f1faee', bg: '#0d1b2a' },
+    { name: 'Toxic',    primary: '#aaff00', secondary: '#69ff36', bg: '#0a1500' },
+    { name: 'Sunset',   primary: '#ff6f61', secondary: '#ffcc5c', bg: '#1a0510' },
+    { name: 'Cyber',    primary: '#00f5d4', secondary: '#f15bb5', bg: '#10002b' },
+];
+
+// ── 2D Object type definitions ──
+const OBJECTS_2D = {
+    // Terrain
+    platform:   { name: 'Plattform',     icon: '\u2583', cat: 'Terrain',   w: 120, h: 20,  color: '#4488cc' },
+    ground:     { name: 'Boden',         icon: '\u2584', cat: 'Terrain',   w: 200, h: 30,  color: '#556644' },
+    wall:       { name: 'Wand',          icon: '\u2503', cat: 'Terrain',   w: 20,  h: 80,  color: '#777777' },
+    ramp:       { name: 'Rampe',         icon: '\u25e2', cat: 'Terrain',   w: 80,  h: 40,  color: '#998866' },
+    // Gefahren
+    spike:      { name: 'Stachel',       icon: '\u25b2', cat: 'Gefahren',  w: 20,  h: 20,  color: '#cc3333' },
+    lava:       { name: 'Lava',          icon: '\ud83c\udf0b', cat: 'Gefahren',  w: 80,  h: 20,  color: '#ff4400' },
+    kill_zone:  { name: 'Kill-Zone',     icon: '\ud83d\udfe5', cat: 'Gefahren',  w: 60,  h: 20,  color: '#ff2222' },
+    // Gameplay
+    spawn:      { name: 'Spawn',         icon: '\ud83d\udfe2', cat: 'Gameplay',  w: 24,  h: 36,  color: '#33cc33' },
+    goal:       { name: 'Ziel',          icon: '\u2b50', cat: 'Gameplay',  w: 30,  h: 40,  color: '#ffcc00' },
+    checkpoint: { name: 'Checkpoint',    icon: '\ud83d\udea9', cat: 'Gameplay',  w: 20,  h: 30,  color: '#ff8800' },
+    bounce_pad: { name: 'Bounce Pad',    icon: '\u2191', cat: 'Gameplay',  w: 40,  h: 10,  color: '#ff9900' },
+    // Items
+    coin:       { name: 'Muenze',        icon: '\ud83e\ude99', cat: 'Items',     w: 14,  h: 14,  color: '#ffdd44' },
+    gem:        { name: 'Edelstein',     icon: '\ud83d\udc8e', cat: 'Items',     w: 16,  h: 16,  color: '#4488ff' },
+    star:       { name: 'Stern',         icon: '\u2b50', cat: 'Items',     w: 18,  h: 18,  color: '#ffaa00' },
+    // Gegner
+    enemy_patrol: { name: 'Patrouillen-Gegner', icon: '\ud83d\udc7e', cat: 'Gegner', w: 24, h: 24, color: '#cc2222',
+        behaviors: { speed: { label: 'Speed', type: 'number', default: 2 }, range: { label: 'Reichweite', type: 'number', default: 100 } } },
+    enemy_chase:  { name: 'Verfolger-Gegner',   icon: '\ud83d\udc79', cat: 'Gegner', w: 24, h: 24, color: '#880088',
+        behaviors: { speed: { label: 'Speed', type: 'number', default: 3 }, range: { label: 'Reichweite', type: 'number', default: 120 } } },
+};
+
+const CATEGORIES_2D = ['Terrain', 'Gefahren', 'Gameplay', 'Items', 'Gegner'];
+
+function buildEditorPlatformer2D(container, router, user, editingGameId) {
+    // ── State ──
+    let objects2D = [];       // { id, type, x, y, w, h, color, behaviors }
+    let selectedId = null;
+    let activeTool = null;    // type key from OBJECTS_2D
+    let undoStack = [];
+    let cameraX = 0;
+    let gridSnap = 20;
+    let animationFrameId = null;
+    let activeTab = 'build'; // 'build' | 'script'
+
+    // Mouse state
+    let mouseWorldX = 0;
+    let mouseWorldY = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragObjOffsetX = 0;
+    let dragObjOffsetY = 0;
+    let isPanning = false;
+    let panStartX = 0;
+    let panCameraStart = 0;
+    let mouseDownPos = null;
+
+    // Unique ID counter
+    let nextId2D = 1;
+    function uid2D() { return 'o2d_' + (nextId2D++); }
+
+    // Game settings
+    let gameSettings = {
+        name: 'Mein Platformer',
+        gravity: 1.0,
+        scrollSpeed: 1.0,
+        theme: { ...THEMES_2D[0] },
+    };
+
+    // Load existing game if editing
+    if (editingGameId) {
+        const saved = loadAllCreated();
+        if (saved[editingGameId]) {
+            const data = saved[editingGameId];
+            if (data.settings) {
+                gameSettings = { ...gameSettings, ...data.settings };
+                if (data.settings.theme) gameSettings.theme = { ...data.settings.theme };
+            }
+        }
+    }
+
+    // ── Build HTML ──
+    container.innerHTML = '';
+    const editorEl = document.createElement('div');
+    editorEl.className = 'editor-2d';
+
+    const themeOptions = THEMES_2D.map((t, i) =>
+        `<option value="${i}" ${t.name === gameSettings.theme.name ? 'selected' : ''}>${t.name}</option>`
+    ).join('');
+
+    editorEl.innerHTML = `
+        <!-- Toolbar -->
+        <div class="editor-toolbar">
+            <button class="editor-btn" id="ed2d-back">\u2190 Zurueck</button>
+            <div class="editor-toolbar-divider"></div>
+            <div class="editor-tabs">
+                <button class="editor-tab active" data-tab="build">Build</button>
+                <button class="editor-tab" data-tab="script">Script</button>
+            </div>
+            <div class="editor-toolbar-divider"></div>
+            <button class="editor-btn" id="ed2d-undo">Rueckgaengig</button>
+            <button class="editor-btn btn-primary" id="ed2d-test">Testen</button>
+            <button class="editor-btn" id="ed2d-save">Speichern</button>
+            <button class="editor-btn btn-success" id="ed2d-publish">Veroeffentlichen</button>
+            <div class="editor-toolbar-spacer"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="editor-body" id="ed2d-body">
+            <!-- Palette -->
+            <div class="editor-palette" id="ed2d-palette"></div>
+            <!-- Canvas -->
+            <div class="editor-canvas-wrap" id="ed2d-canvas-wrap">
+                <canvas id="ed2d-canvas"></canvas>
+                <div class="editor-mode-indicator" id="ed2d-mode"></div>
+                <div class="editor-canvas-hint">Linksklick: Platzieren/Auswaehlen | Rechtsklick+Ziehen: Kamera | Mausrad: Scrollen</div>
+            </div>
+            <!-- Properties -->
+            <div class="editor-props" id="ed2d-props">
+                <div class="props-empty">
+                    <div class="props-empty-icon">\ud83d\udd27</div>
+                    <div>Objekt auswaehlen<br>um Eigenschaften zu bearbeiten</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Bar -->
+        <div class="editor-settings-bar" id="ed2d-settings">
+            <div class="settings-field">
+                <span class="settings-label">Name:</span>
+                <input type="text" class="settings-input" id="ed2d-name" value="${gameSettings.name}" maxlength="40">
+            </div>
+            <div class="settings-field">
+                <span class="settings-label">Gravitation:</span>
+                <input type="range" class="settings-input" id="ed2d-gravity" min="0.3" max="2.0" step="0.1" value="${gameSettings.gravity}">
+                <span class="settings-label" id="ed2d-gravity-val">${gameSettings.gravity}</span>
+            </div>
+            <div class="settings-field">
+                <span class="settings-label">Scroll-Speed:</span>
+                <input type="range" class="settings-input" id="ed2d-speed" min="0.5" max="3.0" step="0.1" value="${gameSettings.scrollSpeed}">
+                <span class="settings-label" id="ed2d-speed-val">${gameSettings.scrollSpeed}</span>
+            </div>
+            <div class="settings-field">
+                <span class="settings-label">Theme:</span>
+                <select class="settings-input" id="ed2d-theme">${themeOptions}</select>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(editorEl);
+
+    // ── DOM Refs ──
+    const paletteEl = editorEl.querySelector('#ed2d-palette');
+    const canvasWrap = editorEl.querySelector('#ed2d-canvas-wrap');
+    const canvas = editorEl.querySelector('#ed2d-canvas');
+    const ctx = canvas.getContext('2d');
+    const modeIndicator = editorEl.querySelector('#ed2d-mode');
+    const propsEl = editorEl.querySelector('#ed2d-props');
+    const bodyEl = editorEl.querySelector('#ed2d-body');
+
+    // ── Script tab placeholder ──
+    let scriptPlaceholderEl = null;
+
+    // ── Build Palette ──
+    function buildPalette() {
+        let html = '';
+        CATEGORIES_2D.forEach(cat => {
+            const items = Object.entries(OBJECTS_2D).filter(([, t]) => t.cat === cat);
+            if (!items.length) return;
+            html += `<div class="palette-cat">${cat}</div>`;
+            items.forEach(([key, t]) => {
+                html += `<div class="palette-item" data-type="${key}">
+                    <span class="palette-item-icon">${t.icon}</span>
+                    <span class="palette-item-label">${t.name}</span>
+                </div>`;
+            });
+        });
+        paletteEl.innerHTML = html;
+    }
+    buildPalette();
+
+    // Palette click handler
+    paletteEl.addEventListener('click', e => {
+        const item = e.target.closest('.palette-item');
+        if (!item) return;
+        const type = item.dataset.type;
+        if (activeTool === type) {
+            activeTool = null;
+            paletteEl.querySelectorAll('.palette-item').forEach(el => el.classList.remove('active'));
+            updateModeIndicator();
+            return;
+        }
+        activeTool = type;
+        paletteEl.querySelectorAll('.palette-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        deselectObject2D();
+        updateModeIndicator();
+    });
+
+    // ── Tab handling ──
+    editorEl.querySelectorAll('.editor-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            editorEl.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            activeTab = tabName;
+
+            if (tabName === 'script') {
+                canvasWrap.style.display = 'none';
+                paletteEl.style.display = 'none';
+                propsEl.style.display = 'none';
+                if (!scriptPlaceholderEl) {
+                    scriptPlaceholderEl = document.createElement('div');
+                    scriptPlaceholderEl.className = 'editor-script-placeholder';
+                    scriptPlaceholderEl.innerHTML = '<div class="editor-script-placeholder-icon">\ud83d\udcdc</div><div>Visual Scripting (kommt bald)</div>';
+                    bodyEl.appendChild(scriptPlaceholderEl);
+                }
+                scriptPlaceholderEl.style.display = 'flex';
+            } else {
+                canvasWrap.style.display = '';
+                paletteEl.style.display = '';
+                propsEl.style.display = '';
+                if (scriptPlaceholderEl) scriptPlaceholderEl.style.display = 'none';
+            }
+        });
+    });
+
+    // ── Mode indicator ──
+    function updateModeIndicator() {
+        if (activeTool) {
+            modeIndicator.textContent = 'Platzieren: ' + OBJECTS_2D[activeTool].name;
+            modeIndicator.classList.add('visible');
+        } else {
+            modeIndicator.classList.remove('visible');
+        }
+    }
+
+    // ── Canvas sizing ──
+    function resizeCanvas() {
+        const rect = canvasWrap.getBoundingClientRect();
+        canvas.width = rect.width * window.devicePixelRatio;
+        canvas.height = rect.height * window.devicePixelRatio;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    }
+    resizeCanvas();
+
+    // ── Coordinate helpers ──
+    function canvasToWorld(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) + cameraX,
+            y: (e.clientY - rect.top),
+        };
+    }
+
+    function snapVal(v) {
+        return Math.round(v / gridSnap) * gridSnap;
+    }
+
+    // ── Object management ──
+    function addObject2D(type, x, y) {
+        const def = OBJECTS_2D[type];
+        if (!def) return null;
+        const obj = {
+            id: uid2D(),
+            type,
+            x: snapVal(x - def.w / 2),
+            y: snapVal(y - def.h / 2),
+            w: def.w,
+            h: def.h,
+            color: def.color,
+            behaviors: {},
+        };
+        if (def.behaviors) {
+            for (const [key, beh] of Object.entries(def.behaviors)) {
+                obj.behaviors[key] = beh.default;
+            }
+        }
+        objects2D.push(obj);
+        pushUndo2D({ action: 'add', id: obj.id, data: { ...obj } });
+        return obj;
+    }
+
+    function removeObject2D(id) {
+        const idx = objects2D.findIndex(o => o.id === id);
+        if (idx < 0) return;
+        const obj = objects2D[idx];
+        pushUndo2D({ action: 'remove', id: obj.id, data: { ...obj } });
+        objects2D.splice(idx, 1);
+        if (selectedId === id) {
+            selectedId = null;
+            renderProperties2D();
+        }
+    }
+
+    function selectObject2D(id) {
+        selectedId = id;
+        activeTool = null;
+        paletteEl.querySelectorAll('.palette-item').forEach(el => el.classList.remove('active'));
+        updateModeIndicator();
+        renderProperties2D();
+    }
+
+    function deselectObject2D() {
+        selectedId = null;
+        renderProperties2D();
+    }
+
+    function findObjectAt(wx, wy) {
+        // Reverse order so top-most (last placed) is found first
+        for (let i = objects2D.length - 1; i >= 0; i--) {
+            const o = objects2D[i];
+            if (wx >= o.x && wx <= o.x + o.w && wy >= o.y && wy <= o.y + o.h) {
+                return o;
+            }
+        }
+        return null;
+    }
+
+    // ── Undo system ──
+    function pushUndo2D(entry) {
+        undoStack.push(entry);
+        if (undoStack.length > 50) undoStack.shift();
+    }
+
+    function performUndo2D() {
+        if (!undoStack.length) return;
+        const entry = undoStack.pop();
+        if (entry.action === 'add') {
+            const idx = objects2D.findIndex(o => o.id === entry.id);
+            if (idx >= 0) {
+                objects2D.splice(idx, 1);
+                if (selectedId === entry.id) { selectedId = null; renderProperties2D(); }
+            }
+        } else if (entry.action === 'remove') {
+            objects2D.push({ ...entry.data });
+        } else if (entry.action === 'move') {
+            const obj = objects2D.find(o => o.id === entry.id);
+            if (obj) {
+                obj.x = entry.oldX;
+                obj.y = entry.oldY;
+                renderProperties2D();
+            }
+        }
+    }
+
+    // ── Properties Panel ──
+    function renderProperties2D() {
+        if (!selectedId) {
+            propsEl.innerHTML = `<div class="props-empty"><div class="props-empty-icon">\ud83d\udd27</div><div>Objekt auswaehlen<br>um Eigenschaften zu bearbeiten</div></div>`;
+            return;
+        }
+        const obj = objects2D.find(o => o.id === selectedId);
+        if (!obj) { propsEl.innerHTML = ''; return; }
+
+        const def = OBJECTS_2D[obj.type];
+        let html = '';
+
+        html += `<div class="props-title">${def.icon} ${def.name}</div>`;
+
+        // Position
+        html += `<div class="props-group"><div class="props-group-label">Position</div>`;
+        html += `<div class="props-row"><span class="props-label">X</span><input type="number" class="props-input" id="p2d-x" value="${obj.x}" step="${gridSnap}"></div>`;
+        html += `<div class="props-row"><span class="props-label">Y</span><input type="number" class="props-input" id="p2d-y" value="${obj.y}" step="${gridSnap}"></div>`;
+        html += `</div>`;
+
+        // Size
+        html += `<div class="props-group"><div class="props-group-label">Groesse</div>`;
+        html += `<div class="props-row"><span class="props-label">Breite</span><input type="number" class="props-input" id="p2d-w" value="${obj.w}" step="${gridSnap}" min="10"></div>`;
+        html += `<div class="props-row"><span class="props-label">Hoehe</span><input type="number" class="props-input" id="p2d-h" value="${obj.h}" step="${gridSnap}" min="10"></div>`;
+        html += `</div>`;
+
+        // Color
+        html += `<div class="props-group"><div class="props-group-label">Farbe</div>`;
+        html += `<div class="props-row"><span class="props-label">C</span><input type="color" class="props-input" id="p2d-color" value="${obj.color}"></div>`;
+        html += `</div>`;
+
+        // Behaviors
+        if (def.behaviors) {
+            html += `<div class="props-group"><div class="props-group-label">Verhalten</div>`;
+            for (const [key, beh] of Object.entries(def.behaviors)) {
+                const val = obj.behaviors[key] !== undefined ? obj.behaviors[key] : beh.default;
+                html += `<div class="props-row"><span class="props-label">${beh.label}</span><input type="${beh.type}" class="props-input" data-beh="${key}" value="${val}" step="0.1"></div>`;
+            }
+            html += `</div>`;
+        }
+
+        // Delete
+        html += `<div class="props-group"><button class="props-delete-btn" id="p2d-delete">Objekt loeschen</button></div>`;
+
+        propsEl.innerHTML = html;
+
+        // Bind events
+        const xInput = propsEl.querySelector('#p2d-x');
+        const yInput = propsEl.querySelector('#p2d-y');
+        const wInput = propsEl.querySelector('#p2d-w');
+        const hInput = propsEl.querySelector('#p2d-h');
+        const colorInput = propsEl.querySelector('#p2d-color');
+
+        if (xInput) xInput.addEventListener('input', e => { obj.x = parseFloat(e.target.value) || 0; });
+        if (yInput) yInput.addEventListener('input', e => { obj.y = parseFloat(e.target.value) || 0; });
+        if (wInput) wInput.addEventListener('input', e => { obj.w = Math.max(10, parseFloat(e.target.value) || 10); });
+        if (hInput) hInput.addEventListener('input', e => { obj.h = Math.max(10, parseFloat(e.target.value) || 10); });
+        if (colorInput) colorInput.addEventListener('input', e => { obj.color = e.target.value; });
+
+        // Behavior inputs
+        propsEl.querySelectorAll('[data-beh]').forEach(input => {
+            input.addEventListener('input', e => {
+                const key = e.target.dataset.beh;
+                const beh = def.behaviors[key];
+                obj.behaviors[key] = beh.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
+            });
+        });
+
+        // Delete button
+        const delBtn = propsEl.querySelector('#p2d-delete');
+        if (delBtn) delBtn.addEventListener('click', () => removeObject2D(obj.id));
+    }
+
+    // ── Canvas Rendering ──
+    function renderCanvas() {
+        const W = canvas.width / window.devicePixelRatio;
+        const H = canvas.height / window.devicePixelRatio;
+
+        ctx.save();
+        ctx.clearRect(0, 0, W, H);
+
+        // Background
+        ctx.fillStyle = gameSettings.theme.bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 0.5;
+        const startX = Math.floor(cameraX / gridSnap) * gridSnap;
+        for (let gx = startX; gx < cameraX + W + gridSnap; gx += gridSnap) {
+            const sx = gx - cameraX;
+            ctx.beginPath();
+            ctx.moveTo(sx, 0);
+            ctx.lineTo(sx, H);
+            ctx.stroke();
+        }
+        for (let gy = 0; gy < H; gy += gridSnap) {
+            ctx.beginPath();
+            ctx.moveTo(0, gy);
+            ctx.lineTo(W, gy);
+            ctx.stroke();
+        }
+
+        // Draw objects
+        ctx.save();
+        ctx.translate(-cameraX, 0);
+
+        for (const obj of objects2D) {
+            // Culling
+            if (obj.x + obj.w < cameraX - 50 || obj.x > cameraX + W + 50) continue;
+            drawObject2D(ctx, obj, 1.0);
+        }
+
+        // Selection highlight
+        if (selectedId) {
+            const sel = objects2D.find(o => o.id === selectedId);
+            if (sel) {
+                ctx.strokeStyle = '#33ff66';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.strokeRect(sel.x - 2, sel.y - 2, sel.w + 4, sel.h + 4);
+                ctx.setLineDash([]);
+            }
+        }
+
+        ctx.restore();
+
+        // Ghost preview (drawn in screen coordinates)
+        if (activeTool && OBJECTS_2D[activeTool]) {
+            const def = OBJECTS_2D[activeTool];
+            const gx = snapVal(mouseWorldX - def.w / 2);
+            const gy = snapVal(mouseWorldY - def.h / 2);
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+            ctx.globalAlpha = 0.4;
+            drawObject2D(ctx, { type: activeTool, x: gx, y: gy, w: def.w, h: def.h, color: def.color, behaviors: {} }, 0.4);
+            ctx.globalAlpha = 1.0;
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    function drawObject2D(ctx, obj, alpha) {
+        const { type, x, y, w, h, color } = obj;
+        const theme = gameSettings.theme;
+
+        switch (type) {
+            case 'platform':
+            case 'ground': {
+                // Solid fill + 4px accent bar on top + 3px side accents
+                ctx.fillStyle = theme.secondary;
+                ctx.fillRect(x, y, w, h);
+                ctx.fillStyle = theme.primary;
+                ctx.fillRect(x, y, w, 4);
+                ctx.fillStyle = theme.primary + '60';
+                ctx.fillRect(x, y, 3, h);
+                ctx.fillRect(x + w - 3, y, 3, h);
+                break;
+            }
+            case 'wall': {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                ctx.fillStyle = theme.primary + '40';
+                ctx.fillRect(x, y, w, 3);
+                ctx.fillRect(x, y + h - 3, w, 3);
+                break;
+            }
+            case 'ramp': {
+                // Right triangle
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x, y + h);
+                ctx.lineTo(x + w, y + h);
+                ctx.lineTo(x + w, y);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            }
+            case 'spike': {
+                // Triangle pointing up
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x + w / 2, y);
+                ctx.lineTo(x, y + h);
+                ctx.lineTo(x + w, y + h);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            }
+            case 'lava':
+            case 'kill_zone': {
+                // Glow effect (larger semi-transparent rect behind)
+                ctx.fillStyle = color + '30';
+                ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                break;
+            }
+            case 'spawn': {
+                // Semi-transparent rect with border + "S" letter
+                ctx.fillStyle = color + '44';
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('S', x + w / 2, y + h / 2);
+                break;
+            }
+            case 'goal': {
+                // Solid rect with star symbol
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 18px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('\u2605', x + w / 2, y + h / 2);
+                break;
+            }
+            case 'checkpoint': {
+                ctx.fillStyle = color + '66';
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, w, h);
+                // Small flag
+                ctx.fillStyle = color;
+                ctx.fillRect(x + 2, y + 2, w - 4, h / 3);
+                break;
+            }
+            case 'bounce_pad': {
+                // Rect with arrows
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('\u2191\u2191\u2191', x + w / 2, y + h / 2);
+                break;
+            }
+            case 'coin':
+            case 'gem':
+            case 'star': {
+                // Circle with shine dot
+                const cx = x + w / 2;
+                const cy = y + h / 2;
+                const r = Math.min(w, h) / 2;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+                // Shine dot
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+            case 'enemy_patrol':
+            case 'enemy_chase': {
+                // Rect body
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                // White eyes with black pupils
+                const eyeW = w * 0.25;
+                const eyeH = h * 0.25;
+                const eyeY = y + h * 0.25;
+                // Left eye
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x + w * 0.15, eyeY, eyeW, eyeH);
+                // Right eye
+                ctx.fillRect(x + w * 0.6, eyeY, eyeW, eyeH);
+                // Pupils
+                ctx.fillStyle = '#000000';
+                const pupilW = eyeW * 0.5;
+                const pupilH = eyeH * 0.5;
+                ctx.fillRect(x + w * 0.15 + eyeW * 0.25, eyeY + eyeH * 0.25, pupilW, pupilH);
+                ctx.fillRect(x + w * 0.6 + eyeW * 0.25, eyeY + eyeH * 0.25, pupilW, pupilH);
+
+                // Patrol enemies show dashed range indicator
+                if (type === 'enemy_patrol' && obj.behaviors && obj.behaviors.range) {
+                    const range = obj.behaviors.range || 100;
+                    ctx.strokeStyle = color + '55';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x + w / 2 - range / 2, y + h / 2);
+                    ctx.lineTo(x + w / 2 + range / 2, y + h / 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                break;
+            }
+            default: {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                break;
+            }
+        }
+    }
+
+    // ── Render loop ──
+    function animate() {
+        animationFrameId = requestAnimationFrame(animate);
+        renderCanvas();
+    }
+    animate();
+
+    // ── Mouse Interaction ──
+    canvas.addEventListener('mousedown', e => {
+        const world = canvasToWorld(e);
+
+        if (e.button === 2) {
+            // Right click: pan
+            isPanning = true;
+            panStartX = e.clientX;
+            panCameraStart = cameraX;
+            e.preventDefault();
+            return;
+        }
+
+        if (e.button === 0) {
+            mouseDownPos = { x: e.clientX, y: e.clientY };
+
+            if (activeTool) {
+                // Place object
+                const toolType = activeTool;
+                const newObj = addObject2D(toolType, world.x, world.y);
+                if (newObj) {
+                    // Select object but keep tool active for continued placement
+                    selectedId = newObj.id;
+                    renderProperties2D();
+                    // Restore tool
+                    activeTool = toolType;
+                    paletteEl.querySelector(`[data-type="${toolType}"]`)?.classList.add('active');
+                    updateModeIndicator();
+                }
+            } else {
+                // Select or start drag
+                const hit = findObjectAt(world.x, world.y);
+                if (hit) {
+                    if (selectedId === hit.id) {
+                        // Start dragging selected object
+                        isDragging = true;
+                        dragStartX = hit.x;
+                        dragStartY = hit.y;
+                        dragObjOffsetX = world.x - hit.x;
+                        dragObjOffsetY = world.y - hit.y;
+                    } else {
+                        selectObject2D(hit.id);
+                        // Prepare for potential drag
+                        isDragging = true;
+                        dragStartX = hit.x;
+                        dragStartY = hit.y;
+                        dragObjOffsetX = world.x - hit.x;
+                        dragObjOffsetY = world.y - hit.y;
+                    }
+                } else {
+                    deselectObject2D();
+                }
+            }
+        }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+        const world = canvasToWorld(e);
+        mouseWorldX = world.x;
+        mouseWorldY = world.y;
+
+        if (isPanning) {
+            const dx = e.clientX - panStartX;
+            cameraX = panCameraStart - dx;
+            return;
+        }
+
+        if (isDragging && selectedId) {
+            const obj = objects2D.find(o => o.id === selectedId);
+            if (obj) {
+                obj.x = snapVal(world.x - dragObjOffsetX);
+                obj.y = snapVal(world.y - dragObjOffsetY);
+                renderProperties2D();
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseup', e => {
+        if (isPanning) {
+            isPanning = false;
+            return;
+        }
+
+        if (isDragging && selectedId) {
+            const obj = objects2D.find(o => o.id === selectedId);
+            if (obj && (obj.x !== dragStartX || obj.y !== dragStartY)) {
+                pushUndo2D({ action: 'move', id: obj.id, oldX: dragStartX, oldY: dragStartY, newX: obj.x, newY: obj.y });
+            }
+            isDragging = false;
+        }
+
+        mouseDownPos = null;
+    });
+
+    // Mouse wheel: scroll camera horizontally
+    canvas.addEventListener('wheel', e => {
+        cameraX += e.deltaY;
+        e.preventDefault();
+    }, { passive: false });
+
+    // Prevent context menu
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // ── Keyboard shortcuts ──
+    function onKeyDown2D(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+            e.preventDefault();
+            removeObject2D(selectedId);
+        }
+
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            performUndo2D();
+        }
+
+        if (e.ctrlKey && e.key === 'd' && selectedId) {
+            e.preventDefault();
+            const obj = objects2D.find(o => o.id === selectedId);
+            if (obj) {
+                const dup = {
+                    id: uid2D(),
+                    type: obj.type,
+                    x: obj.x + 40,
+                    y: obj.y,
+                    w: obj.w,
+                    h: obj.h,
+                    color: obj.color,
+                    behaviors: { ...obj.behaviors },
+                };
+                objects2D.push(dup);
+                pushUndo2D({ action: 'add', id: dup.id, data: { ...dup } });
+                selectObject2D(dup.id);
+            }
+        }
+
+        if (e.key === 'Escape') {
+            if (activeTool) {
+                activeTool = null;
+                paletteEl.querySelectorAll('.palette-item').forEach(el => el.classList.remove('active'));
+                updateModeIndicator();
+            } else {
+                deselectObject2D();
+            }
+        }
+    }
+    window.addEventListener('keydown', onKeyDown2D);
+
+    // ── Settings change handlers ──
+    const gravityInput = editorEl.querySelector('#ed2d-gravity');
+    const gravityVal = editorEl.querySelector('#ed2d-gravity-val');
+    const speedInput = editorEl.querySelector('#ed2d-speed');
+    const speedVal = editorEl.querySelector('#ed2d-speed-val');
+    const themeInput = editorEl.querySelector('#ed2d-theme');
+    const nameInput = editorEl.querySelector('#ed2d-name');
+
+    if (gravityInput) gravityInput.addEventListener('input', e => {
+        gameSettings.gravity = parseFloat(e.target.value);
+        if (gravityVal) gravityVal.textContent = gameSettings.gravity.toFixed(1);
+    });
+    if (speedInput) speedInput.addEventListener('input', e => {
+        gameSettings.scrollSpeed = parseFloat(e.target.value);
+        if (speedVal) speedVal.textContent = gameSettings.scrollSpeed.toFixed(1);
+    });
+    if (themeInput) themeInput.addEventListener('change', e => {
+        const idx = parseInt(e.target.value);
+        if (THEMES_2D[idx]) gameSettings.theme = { ...THEMES_2D[idx] };
+    });
+    if (nameInput) nameInput.addEventListener('input', e => {
+        gameSettings.name = e.target.value.slice(0, 40);
+    });
+
+    // ── Save/Load ──
+    function readSettings2D() {
+        return {
+            name: gameSettings.name,
+            gravity: gameSettings.gravity,
+            scrollSpeed: gameSettings.scrollSpeed,
+            theme: { ...gameSettings.theme },
+        };
+    }
+
+    function serializeObjects2D() {
+        return objects2D.map(o => ({
+            type: o.type,
+            x: o.x,
+            y: o.y,
+            w: o.w,
+            h: o.h,
+            color: o.color,
+            behaviors: { ...o.behaviors },
+        }));
+    }
+
+    function saveGame2D() {
+        const settings = readSettings2D();
+        const objects = serializeObjects2D();
+        const id = editingGameId || 'game_' + Date.now();
+        const all = loadAllCreated();
+
+        all[id] = {
+            name: settings.name,
+            template: 'platformer-2d',
+            type: 'platformer',
+            objects,
+            settings,
+            createdAt: all[id]?.createdAt || Date.now(),
+            updatedAt: Date.now(),
+            published: all[id]?.published || false,
+            creatorId: user.id,
+            creatorName: user.name,
+        };
+
+        saveAllCreated(all);
+        editingGameId = id;
+        showToast2D('Gespeichert!', 'success');
+        return id;
+    }
+
+    function loadGame2D(gameId) {
+        const all = loadAllCreated();
+        const data = all[gameId];
+        if (!data || data.template !== 'platformer-2d') return false;
+
+        objects2D = [];
+        if (data.objects) {
+            data.objects.forEach(o => {
+                objects2D.push({
+                    id: uid2D(),
+                    type: o.type,
+                    x: o.x,
+                    y: o.y,
+                    w: o.w,
+                    h: o.h,
+                    color: o.color,
+                    behaviors: { ...o.behaviors },
+                });
+            });
+        }
+        if (data.settings) {
+            gameSettings.name = data.settings.name || 'Mein Platformer';
+            gameSettings.gravity = data.settings.gravity || 1.0;
+            gameSettings.scrollSpeed = data.settings.scrollSpeed || 1.0;
+            if (data.settings.theme) gameSettings.theme = { ...data.settings.theme };
+
+            // Update DOM inputs
+            if (nameInput) nameInput.value = gameSettings.name;
+            if (gravityInput) { gravityInput.value = gameSettings.gravity; if (gravityVal) gravityVal.textContent = gameSettings.gravity.toFixed(1); }
+            if (speedInput) { speedInput.value = gameSettings.scrollSpeed; if (speedVal) speedVal.textContent = gameSettings.scrollSpeed.toFixed(1); }
+            if (themeInput) {
+                const idx = THEMES_2D.findIndex(t => t.name === gameSettings.theme.name);
+                if (idx >= 0) themeInput.value = idx;
+            }
+        }
+        return true;
+    }
+
+    // Load existing if editing
+    if (editingGameId) {
+        loadGame2D(editingGameId);
+    }
+
+    // ── Toast ──
+    function showToast2D(msg, type = '') {
+        const toast = document.createElement('div');
+        toast.className = 'create-toast' + (type ? ' toast-' + type : '');
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2600);
+    }
+
+    // ── Modal ──
+    function showModal2D(title, text, confirmLabel, onConfirm) {
+        const overlay = document.createElement('div');
+        overlay.className = 'create-modal-overlay';
+        overlay.innerHTML = `
+            <div class="create-modal">
+                <h3>${title}</h3>
+                <p>${text}</p>
+                <div class="create-modal-actions">
+                    <button class="modal-cancel">Abbrechen</button>
+                    <button class="modal-primary">${confirmLabel}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.modal-cancel').addEventListener('click', () => overlay.remove());
+        overlay.querySelector('.modal-primary').addEventListener('click', () => {
+            overlay.remove();
+            onConfirm();
+        });
+    }
+
+    // ── Publish ──
+    function publishGame2D() {
+        const hasSpawn = objects2D.some(o => o.type === 'spawn');
+        if (!hasSpawn) {
+            showToast2D('Du brauchst mindestens einen Spawn-Punkt!', 'error');
+            return;
+        }
+        if (objects2D.length < 3) {
+            showToast2D('Fuege mehr Objekte hinzu (mindestens 3)!', 'error');
+            return;
+        }
+
+        showModal2D(
+            'Spiel veroeffentlichen?',
+            `Dein Spiel "${gameSettings.name}" wird im Katalog fuer alle sichtbar.`,
+            'Veroeffentlichen',
+            () => {
+                const id = saveGame2D();
+                const all = loadAllCreated();
+                all[id].published = true;
+                saveAllCreated(all);
+                showToast2D('Spiel veroeffentlicht! Es ist jetzt im Katalog.', 'success');
+            }
+        );
+    }
+
+    // ── Toolbar handlers ──
+    editorEl.querySelector('#ed2d-back').addEventListener('click', () => {
+        cleanup2D();
+        router.navigate('#/home');
+    });
+    editorEl.querySelector('#ed2d-undo').addEventListener('click', performUndo2D);
+    editorEl.querySelector('#ed2d-test').addEventListener('click', () => {
+        saveGame2D();
+        showToast2D('Test-Modus kommt bald!', '');
+    });
+    editorEl.querySelector('#ed2d-save').addEventListener('click', saveGame2D);
+    editorEl.querySelector('#ed2d-publish').addEventListener('click', publishGame2D);
+
+    // ── Resize handler ──
+    function onResize2D() {
+        resizeCanvas();
+    }
+    window.addEventListener('resize', onResize2D);
+
+    // ── Cleanup ──
+    function cleanup2D() {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('keydown', onKeyDown2D);
+        window.removeEventListener('resize', onResize2D);
+        if (editorEl.parentNode) editorEl.remove();
+    }
+
+    renderCreate._cleanup = cleanup2D;
 }
