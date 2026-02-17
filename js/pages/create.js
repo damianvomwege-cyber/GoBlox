@@ -2523,9 +2523,82 @@ function buildEditorPlatformer2D(container, router, user, editingGameId) {
         router.navigate('#/home');
     });
     editorEl.querySelector('#ed2d-undo').addEventListener('click', performUndo2D);
-    editorEl.querySelector('#ed2d-test').addEventListener('click', () => {
+    editorEl.querySelector('#ed2d-test').addEventListener('click', async () => {
         saveGame2D();
-        showToast2D('Test-Modus kommt bald!', '');
+
+        // ── Create fullscreen test overlay ──
+        const overlay = document.createElement('div');
+        overlay.className = 'editor-test-overlay';
+
+        const bar = document.createElement('div');
+        bar.className = 'editor-test-bar';
+        bar.innerHTML = '<span>Test-Modus</span>';
+        const exitBtn = document.createElement('button');
+        exitBtn.textContent = 'Beenden (ESC)';
+        bar.appendChild(exitBtn);
+
+        const testCanvas = document.createElement('canvas');
+        testCanvas.style.flex = '1';
+        testCanvas.style.display = 'block';
+
+        overlay.appendChild(bar);
+        overlay.appendChild(testCanvas);
+        document.body.appendChild(overlay);
+
+        // Size the canvas to fill available space
+        function sizeTestCanvas() {
+            const barH = bar.offsetHeight;
+            testCanvas.width = window.innerWidth;
+            testCanvas.height = window.innerHeight - barH;
+        }
+        sizeTestCanvas();
+
+        let testGame = null;
+        let testResizeHandler = null;
+        let testKeyHandler = null;
+
+        function closeTestMode() {
+            if (testGame) { testGame.stop(); testGame = null; }
+            if (testResizeHandler) window.removeEventListener('resize', testResizeHandler);
+            if (testKeyHandler) window.removeEventListener('keydown', testKeyHandler);
+            overlay.remove();
+        }
+
+        // ESC to close
+        testKeyHandler = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                closeTestMode();
+            }
+        };
+        window.addEventListener('keydown', testKeyHandler);
+
+        // Button to close
+        exitBtn.addEventListener('click', closeTestMode);
+
+        // Resize handling
+        testResizeHandler = () => sizeTestCanvas();
+        window.addEventListener('resize', testResizeHandler);
+
+        // Dynamically import and start the custom platformer
+        try {
+            const { CustomPlatformer2D } = await import('../games/templates/custom-platformer-2d.js');
+            testGame = new CustomPlatformer2D(testCanvas, {
+                theme: { ...gameSettings.theme },
+                gravity: gameSettings.gravity,
+                scrollSpeed: gameSettings.scrollSpeed,
+                objects: objects2D.map(o => ({ ...o, behaviors: { ...o.behaviors } })),
+            });
+            testGame.start();
+            testGame.onWin = () => {
+                showToast2D('Ziel erreicht!', 'success');
+            };
+        } catch (err) {
+            console.error('Test mode failed:', err);
+            showToast2D('Fehler beim Starten des Test-Modus', '');
+            closeTestMode();
+        }
     });
     editorEl.querySelector('#ed2d-save').addEventListener('click', saveGame2D);
     editorEl.querySelector('#ed2d-publish').addEventListener('click', publishGame2D);

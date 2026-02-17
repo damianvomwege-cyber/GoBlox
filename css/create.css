@@ -1335,3 +1335,38 @@ input[type="range"].settings-input {
         width: 80px;
     }
 }
+
+/* ── Test Mode Overlay ───────────────────────────────────────────── */
+
+.editor-test-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+}
+.editor-test-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background: var(--bg-card, #1a1a2e);
+    border-bottom: 1px solid var(--border, #333);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+.editor-test-bar button {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--border, #555);
+    border-radius: 6px;
+    background: var(--bg-secondary, #252545);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.editor-test-bar button:hover {
+    border-color: var(--accent-primary, #6c63ff);
+}
