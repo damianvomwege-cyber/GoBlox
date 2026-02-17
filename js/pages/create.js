@@ -329,6 +329,19 @@ const OBJECT_TYPES = {
 // ── Category order ──
 const CATEGORIES = ['Terrain', 'Gameplay', 'Sammelbar', 'Gegner', 'Umgebung'];
 
+// ── Template definitions ──
+const TEMPLATES = [
+    { id: 'obby-3d',      name: 'Obby 3D',        icon: '\ud83c\udfd7\ufe0f', desc: '3D-Hindernisparcours mit Plattformen und Fallen',     accent: '#00b06f', editor: '3d' },
+    { id: 'platformer-2d', name: 'Platformer 2D',  icon: '\ud83c\udfae',       desc: '2D-Jump-and-Run mit Levels und Power-Ups',            accent: '#4488ff', editor: '2d' },
+    { id: 'shooter-3d',    name: 'Shooter 3D',     icon: '\ud83d\udd2b',       desc: '3D-Arena-Shooter mit Gegnern und Waffen',             accent: '#e94560', editor: '3d' },
+    { id: 'racing',        name: 'Racing',          icon: '\ud83c\udfce\ufe0f', desc: 'Rennspiel mit Strecken und Fahrzeugen',               accent: '#ff9900', editor: '2d' },
+    { id: 'snake',         name: 'Snake',           icon: '\ud83d\udc0d',       desc: 'Klassisches Snake-Spiel mit eigenen Levels',          accent: '#33cc33', editor: '2d' },
+    { id: 'maze',          name: 'Maze',            icon: '\ud83e\uddf1',       desc: 'Labyrinth-Spiel mit Raetseln und Geheimnissen',       accent: '#aa44ff', editor: '2d' },
+];
+
+// ── Current template state ──
+let currentTemplate = null;
+
 // ── Unique ID generator ──
 let _nextUid = 1;
 function uid() { return 'obj_' + (_nextUid++); }
@@ -341,6 +354,109 @@ export function renderCreate(container, router) {
     const user = Auth.currentUser();
     if (!user) { router.navigate('#/login'); return; }
 
+    // Check if we are editing an existing game
+    const hashParts = window.location.hash.split('/');
+    let editingGameId = null;
+    if (hashParts.length > 2) {
+        editingGameId = hashParts[2];
+        const saved = loadAllCreated();
+        if (saved[editingGameId]) {
+            const data = saved[editingGameId];
+            const template = data.template || 'obby-3d';
+            currentTemplate = template;
+            const tmpl = TEMPLATES.find(t => t.id === template);
+            if (tmpl && tmpl.editor === '3d') {
+                buildEditor3D(container, router, user, editingGameId);
+            } else {
+                showPlaceholder(container, router, template);
+            }
+            return;
+        }
+    }
+
+    // Show template picker
+    showTemplatePicker(container, router, user);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Template Picker
+// ══════════════════════════════════════════════════════════════════════════
+
+function showTemplatePicker(container, router, user) {
+    container.innerHTML = `
+        <div class="template-picker">
+            <div class="template-picker-header">
+                <h1 class="template-picker-title">Neues Spiel erstellen</h1>
+                <p class="template-picker-subtitle">Waehle einen Spieltyp</p>
+            </div>
+            <div class="template-picker-grid">
+                ${TEMPLATES.map(t => `
+                    <div class="template-card" data-template="${t.id}" style="--card-accent: ${t.accent}">
+                        <div class="template-card-icon">${t.icon}</div>
+                        <div class="template-card-name">${t.name}</div>
+                        <div class="template-card-desc">${t.desc}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="template-picker-back" id="template-back">Zurueck</button>
+        </div>
+    `;
+
+    // Back button
+    container.querySelector('#template-back').addEventListener('click', () => {
+        router.navigate('#/home');
+    });
+
+    // Card click handlers
+    container.querySelectorAll('.template-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const templateId = card.dataset.template;
+            const tmpl = TEMPLATES.find(t => t.id === templateId);
+            if (!tmpl) return;
+
+            currentTemplate = templateId;
+
+            if (tmpl.editor === '3d') {
+                buildEditor3D(container, router, user, null);
+            } else {
+                showPlaceholder(container, router, templateId);
+            }
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Placeholder for templates not yet implemented
+// ══════════════════════════════════════════════════════════════════════════
+
+function showPlaceholder(container, router, templateId) {
+    const tmpl = TEMPLATES.find(t => t.id === templateId);
+    container.innerHTML = `
+        <div class="template-picker">
+            <div class="template-picker-header">
+                <div class="template-card-icon" style="font-size:3rem;margin-bottom:1rem">${tmpl ? tmpl.icon : '\ud83d\udee0\ufe0f'}</div>
+                <h1 class="template-picker-title">${tmpl ? tmpl.name : templateId}</h1>
+                <p class="template-picker-subtitle">Dieser Editor wird bald verfuegbar!</p>
+            </div>
+            <button class="template-picker-back" id="placeholder-back">Zurueck</button>
+        </div>
+    `;
+
+    container.querySelector('#placeholder-back').addEventListener('click', () => {
+        const user = Auth.currentUser();
+        if (user) {
+            showTemplatePicker(container, router, user);
+        } else {
+            router.navigate('#/home');
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 3D Editor (existing editor, refactored into function)
+// ══════════════════════════════════════════════════════════════════════════
+
+function buildEditor3D(container, router, user, editingGameId) {
     // ── State ──
     let scene, camera, renderer, controls, raycaster, mouse, gridHelper;
     let groundPlane;
@@ -364,11 +480,8 @@ export function renderCreate(container, router) {
         skyColor: '#87ceeb',
     };
 
-    // Load from query param if editing existing
-    const hashParts = window.location.hash.split('/');
-    let editingGameId = null;
-    if (hashParts.length > 2) {
-        editingGameId = hashParts[2];
+    // Load settings from existing game if editing
+    if (editingGameId) {
         const saved = loadAllCreated();
         if (saved[editingGameId]) {
             const data = saved[editingGameId];
@@ -1031,6 +1144,7 @@ export function renderCreate(container, router) {
         all[id] = {
             name: settings.name,
             type: settings.type,
+            template: currentTemplate || 'obby-3d',
             objects,
             settings,
             createdAt: all[id]?.createdAt || Date.now(),
