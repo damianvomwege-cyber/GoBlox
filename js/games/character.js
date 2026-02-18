@@ -25,6 +25,8 @@ export const GAME_ITEMS = {
     'Maze': 'torch',
     'Catch': 'basket',
     'Tower Defense': 'wrench',
+    'Obby': 'none',
+    'Tycoon': 'wrench',
     'Fishing': 'rod',
     'Farming': 'hoe',
     'Cooking': 'spatula',

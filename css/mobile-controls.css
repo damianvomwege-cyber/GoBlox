@@ -4,6 +4,11 @@
 
 /* ── Mobile Game Page Adjustments ─────────────────────────────────────── */
 
+.gd-play-view .gd-play-topbar {
+    padding: 0.35rem 0.5rem;
+}
+
+/* Legacy support for old class names */
 .game-page-mobile .game-topbar {
     padding: 0.35rem 0.5rem;
 }
@@ -26,6 +31,14 @@
 }
 
 /* Prevent text selection and callouts on touch */
+.gd-play-canvas,
+.gd-play-canvas .game-3d-container {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
 .game-page-mobile .game-canvas-wrap,
 .game-page-mobile .game-3d-container {
     -webkit-touch-callout: none;
@@ -328,6 +341,10 @@
         width: 52px;
         height: 52px;
         font-size: 18px;
+    }
+
+    .gd-play-view .gd-play-topbar {
+        padding: 0.25rem 0.5rem;
     }
 
     .game-page-mobile .game-topbar {

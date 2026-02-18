@@ -63,7 +63,8 @@ const categoryNouns = {
     'Simon Says':      ['Simon', 'Mimic', 'Follow', 'Pattern', 'Repeat', 'Sequence', 'Copy', 'Echo', 'Mirror', 'Recall'],
     'Space':           ['Galaxy', 'Orbit', 'Asteroid', 'Nebula', 'Starship', 'Cosmos', 'Rocket', 'Nova', 'Planet', 'Void'],
     'Bubble Shooter':  ['Bubble', 'Pop', 'Orb', 'Sphere', 'Fizz', 'Marble', 'Globe', 'Float', 'Splash', 'Burst'],
-    'Catch':           ['Catch', 'Grab', 'Collect', 'Gather', 'Snatch', 'Bucket', 'Basket', 'Scoop', 'Net', 'Clutch']
+    'Catch':           ['Catch', 'Grab', 'Collect', 'Gather', 'Snatch', 'Bucket', 'Basket', 'Scoop', 'Net', 'Clutch'],
+    'Obby':            ['Obby', 'Parkour', 'Hindernislauf', 'Kurs', 'Sprint', 'Sprung', 'Lauf', 'Klettern', 'Strecke', 'Challenge'],
 };
 
 // Fallback nouns for any unknown category

@@ -1,65 +1,884 @@
 /* ===========================
-   Game Play Page
+   Game Detail Page - Roblox Style
    =========================== */
 
-.game-page {
+/* ── Page Layout ─────────────────────────────────────────────────── */
+
+.gd-page {
+    max-width: 1100px;
+    margin: -2rem auto 0;
+    padding: 0;
+}
+
+@media (max-width: 768px) {
+    .gd-page {
+        margin-top: -1rem;
+    }
+}
+
+/* ── Not Found ───────────────────────────────────────────────────── */
+
+.gd-not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6rem 2rem;
+    gap: 1rem;
+}
+
+.gd-not-found-icon {
+    color: var(--text-secondary);
+    opacity: 0.4;
+    margin-bottom: 0.5rem;
+}
+
+.gd-not-found h2 {
+    font-size: 1.5rem;
+}
+
+.gd-not-found p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    max-width: 320px;
+}
+
+/* ── Hero Section ────────────────────────────────────────────────── */
+
+.gd-hero {
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.gd-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.gd-hero-inner {
+    display: flex;
+    gap: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.gd-hero-thumb {
+    flex-shrink: 0;
+    width: 220px;
+    height: 220px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.gd-hero-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gd-hero-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gd-hero-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.gd-hero-title {
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.gd-hero-creator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.gd-hero-creator strong {
+    color: var(--accent-primary);
+}
+
+.gd-creator-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── Stats Row ───────────────────────────────────────────────────── */
+
+.gd-hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.gd-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.gd-stat-value {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.gd-stat-label {
+    opacity: 0.7;
+    font-size: 0.75rem;
+}
+
+.gd-stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    flex-shrink: 0;
+    animation: gd-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gd-dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.gd-stat-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.gd-like-bar-mini {
+    width: 40px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--accent-secondary);
+    overflow: hidden;
+}
+
+.gd-like-fill-mini {
+    height: 100%;
+    background: var(--accent-primary);
+    border-radius: 3px;
+}
+
+/* ── Hero Actions ────────────────────────────────────────────────── */
+
+.gd-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.gd-play-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.85rem 2.5rem;
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 16px rgba(0, 176, 111, 0.35);
+    letter-spacing: 0.02em;
+}
+
+.gd-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 176, 111, 0.5);
+    filter: brightness(1.1);
+}
+
+.gd-play-btn:active {
+    transform: translateY(0);
+}
+
+.gd-fav-btn,
+.gd-share-btn {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.gd-fav-btn:hover,
+.gd-share-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}
+
+.gd-fav-active {
+    color: #ffd700 !important;
+    border-color: rgba(255, 215, 0, 0.3);
+    background: rgba(255, 215, 0, 0.1);
+}
+
+/* ── Content Sections ────────────────────────────────────────────── */
+
+.gd-content {
+    padding: 0 0.5rem;
+}
+
+.gd-section {
+    margin-bottom: 2rem;
+}
+
+.gd-section-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.gd-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.65;
+    margin-bottom: 1.25rem;
+}
+
+/* ── Meta Grid ───────────────────────────────────────────────────── */
+
+.gd-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.gd-meta-item {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.gd-meta-label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.3rem;
+}
+
+.gd-meta-value {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.gd-tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.gd-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    background: rgba(0, 176, 111, 0.12);
+    color: var(--accent-primary);
+    border-radius: 4px;
+}
+
+/* ── Voting Section ──────────────────────────────────────────────── */
+
+.gd-voting {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.gd-vote-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    max-width: 400px;
+}
+
+.gd-vote-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.gd-vote-btn:hover {
+    background: var(--bg-hover);
+}
+
+.gd-vote-up.gd-vote-active {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    background: rgba(0, 176, 111, 0.1);
+}
+
+.gd-vote-down.gd-vote-active {
+    color: var(--accent-secondary);
+    border-color: var(--accent-secondary);
+    background: rgba(233, 69, 96, 0.1);
+}
+
+.gd-vote-bar {
+    flex: 1;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--accent-secondary);
+    overflow: hidden;
+}
+
+.gd-vote-fill {
+    height: 100%;
+    background: var(--accent-primary);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+.gd-vote-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* ── Servers Section ─────────────────────────────────────────────── */
+
+.gd-servers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.gd-server-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: border-color 0.15s ease;
+}
+
+.gd-server-row:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.gd-server-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 200px;
+}
+
+.gd-server-name {
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.gd-server-count {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.gd-server-ping {
+    font-size: 0.72rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.gd-server-avatars {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 0;
+}
+
+.gd-server-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+    margin-left: -6px;
+    flex-shrink: 0;
+}
+
+.gd-server-avatar:first-child {
+    margin-left: 0;
+}
+
+.gd-server-more {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-left: 0.35rem;
+    font-weight: 600;
+}
+
+.gd-server-join {
+    padding: 0.4rem 1rem;
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.gd-server-join:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+/* ── Game Passes ─────────────────────────────────────────────────── */
+
+.gd-passes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.75rem;
+}
+
+.gd-pass-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: border-color 0.15s ease;
+}
+
+.gd-pass-card:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.gd-pass-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+}
+
+.gd-pass-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.gd-pass-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gd-pass-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.15rem;
+}
+
+.gd-pass-desc {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gd-pass-buy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.85rem;
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 6px;
+    color: #ffd700;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.gd-pass-buy:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.35);
+}
+
+.gd-pass-buy .gobux-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.gd-pass-buy-error {
+    color: var(--accent-secondary) !important;
+    border-color: rgba(233, 69, 96, 0.3) !important;
+    background: rgba(233, 69, 96, 0.12) !important;
+    font-size: 0.7rem;
+}
+
+.gd-pass-owned-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.gd-pass-owned {
+    opacity: 0.7;
+}
+
+/* ── Reviews ─────────────────────────────────────────────────────── */
+
+.gd-reviews {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.gd-review {
+    padding: 0.85rem 1rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.gd-review-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.gd-review-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+}
+
+.gd-review-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.gd-review-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.gd-review-time {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.gd-review-vote {
+    flex-shrink: 0;
+}
+
+.gd-review-positive {
+    color: var(--accent-primary);
+}
+
+.gd-review-negative {
+    color: var(--accent-secondary);
+}
+
+.gd-review-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* ── Similar Games Carousel ──────────────────────────────────────── */
+
+.gd-similar {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.gd-similar::-webkit-scrollbar {
+    height: 4px;
+}
+
+.gd-similar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.gd-similar-card {
+    flex-shrink: 0;
+    width: 160px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gd-similar-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.gd-similar-thumb {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--bg-primary);
+    position: relative;
+}
+
+.gd-similar-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.15s ease;
+}
+
+.gd-similar-card:hover .gd-similar-thumb img {
+    transform: scale(1.08);
+}
+
+.gd-similar-placeholder {
+    width: 100%;
+    height: 100%;
+}
+
+.gd-similar-players {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.65);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.gd-similar-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+}
+
+.gd-similar-info {
+    padding: 0.4rem 0.5rem;
+}
+
+.gd-similar-name {
+    display: block;
+    font-weight: 700;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Play View ───────────────────────────────────────────────────── */
+
+.gd-play-view {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 0px);
     position: relative;
-    margin: -2rem;
-    /* Cancel out the #content padding */
+    margin: -1.5rem -2rem 0;
+}
+
+.gd-play-view.hidden {
+    display: none;
 }
 
 @media (max-width: 768px) {
-    .game-page {
-        /* Account for mobile bottom bar (56px + 8px buffer) */
+    .gd-play-view {
         height: calc(100vh - 64px);
         margin: -1rem;
     }
 }
 
-/* ── Top Bar ───────────────────────────────────────────────────────── */
+/* ── Play Top Bar ────────────────────────────────────────────────── */
 
-.game-topbar {
+.gd-play-topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.6rem 1rem;
+    padding: 0.5rem 1rem;
     background: var(--bg-secondary);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     flex-shrink: 0;
-    gap: 1rem;
     z-index: 10;
+    gap: 0.75rem;
 }
 
-.game-back {
-    gap: 0.3rem;
-    white-space: nowrap;
+.gd-play-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    flex: 1;
 }
 
-.game-title {
+.gd-play-title {
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.9rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-align: center;
-    flex: 1;
-    min-width: 0;
 }
 
-.game-score {
-    font-weight: 600;
+.gd-play-topbar-center {
+    flex-shrink: 0;
+}
+
+.gd-play-score {
+    font-weight: 700;
     font-size: 0.9rem;
     color: var(--accent-primary);
-    white-space: nowrap;
     font-family: monospace;
+    white-space: nowrap;
 }
 
-/* ── Canvas Container ──────────────────────────────────────────────── */
+.gd-play-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
-.game-canvas-wrap {
+.gd-play-action-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.gd-play-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}
+
+.gd-leave-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    background: rgba(233, 69, 96, 0.12);
+    border: 1px solid rgba(233, 69, 96, 0.25);
+    border-radius: 6px;
+    color: var(--accent-secondary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.gd-leave-btn:hover {
+    background: rgba(233, 69, 96, 0.2);
+    border-color: rgba(233, 69, 96, 0.4);
+}
+
+/* ── Play Canvas ─────────────────────────────────────────────────── */
+
+.gd-play-canvas {
     flex: 1;
     display: flex;
     justify-content: center;
@@ -67,44 +886,14 @@
     background: #000;
     overflow: hidden;
     min-height: 0;
+    position: relative;
 }
 
-.game-canvas-wrap canvas {
+.gd-play-canvas canvas {
     display: block;
-    /* Canvas fills its container via JS width/height attributes */
 }
 
-/* ── Bottom Bar ────────────────────────────────────────────────────── */
-
-.game-bottombar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1rem;
-    background: var(--bg-secondary);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    flex-shrink: 0;
-    z-index: 10;
-}
-
-.game-bottombar .btn {
-    gap: 0.35rem;
-    font-size: 0.8rem;
-    padding: 0.45rem 0.85rem;
-}
-
-/* Favorite button active state */
-.game-fav-active {
-    color: var(--accent-secondary) !important;
-    border-color: var(--accent-secondary) !important;
-}
-
-.game-fav-active:hover {
-    background: rgba(233, 69, 96, 0.15) !important;
-}
-
-/* ── Game Over Overlay ─────────────────────────────────────────────── */
+/* ── Game Over Overlay (reused from old styles) ──────────────────── */
 
 .game-over-overlay {
     position: absolute;
@@ -124,12 +913,8 @@
 }
 
 @keyframes gameOverFadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .game-over-box {
@@ -147,14 +932,8 @@
 }
 
 @keyframes gameOverSlideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .game-over-title {
@@ -190,44 +969,108 @@
     justify-content: center;
 }
 
-/* ── Fullscreen adjustments ────────────────────────────────────────── */
+/* ── Fullscreen ──────────────────────────────────────────────────── */
 
-.game-canvas-wrap:fullscreen {
+.gd-play-canvas:fullscreen {
     background: #000;
 }
 
-.game-canvas-wrap:fullscreen canvas {
+.gd-play-canvas:fullscreen canvas {
     width: 100%;
     height: 100%;
 }
 
-/* ── Responsive ────────────────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .gd-hero-inner {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .gd-hero-thumb {
+        width: 180px;
+        height: 180px;
+    }
+
+    .gd-hero-info {
+        align-items: center;
+    }
+
+    .gd-hero-stats {
+        justify-content: center;
+    }
+
+    .gd-hero-actions {
+        justify-content: center;
+    }
+
+    .gd-hero-creator {
+        justify-content: center;
+    }
+}
 
 @media (max-width: 768px) {
-    .game-topbar {
-        padding: 0.5rem 0.75rem;
+    .gd-hero {
+        padding: 1.25rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
     }
 
-    .game-title {
-        font-size: 0.85rem;
+    .gd-hero-thumb {
+        width: 140px;
+        height: 140px;
     }
 
-    .game-score {
+    .gd-hero-title {
+        font-size: 1.5rem;
+    }
+
+    .gd-hero-stats {
+        gap: 0.5rem;
+    }
+
+    .gd-stat-label {
+        display: none;
+    }
+
+    .gd-content {
+        padding: 0;
+    }
+
+    .gd-server-info {
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+
+    .gd-server-avatars {
+        display: none;
+    }
+
+    .gd-passes {
+        grid-template-columns: 1fr;
+    }
+
+    .gd-similar-card {
+        width: 130px;
+    }
+
+    .gd-meta-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gd-play-topbar {
+        padding: 0.4rem 0.75rem;
+    }
+
+    .gd-play-title {
         font-size: 0.8rem;
     }
 
-    .game-bottombar {
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-    }
-
-    .game-bottombar .btn {
-        font-size: 0.72rem;
-        padding: 0.4rem 0.6rem;
-    }
-
     .game-over-box {
-        padding: 1.5rem 1.5rem;
+        padding: 1.5rem;
     }
 
     .game-over-title {
@@ -237,4 +1080,93 @@
     .game-over-score {
         font-size: 2.2rem;
     }
+}
+
+@media (max-width: 480px) {
+    .gd-hero {
+        padding: 1rem;
+    }
+
+    .gd-hero-thumb {
+        width: 120px;
+        height: 120px;
+    }
+
+    .gd-hero-title {
+        font-size: 1.25rem;
+    }
+
+    .gd-play-btn {
+        padding: 0.7rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .gd-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gd-similar-card {
+        width: 120px;
+    }
+}
+
+/* ── Light Theme ─────────────────────────────────────────────────── */
+
+body.light-theme .gd-play-topbar {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .gd-server-row,
+body.light-theme .gd-pass-card,
+body.light-theme .gd-review,
+body.light-theme .gd-meta-item {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .gd-server-avatar {
+    border-color: var(--bg-card);
+}
+
+body.light-theme .gd-play-action-btn {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .gd-fav-btn,
+body.light-theme .gd-share-btn {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Game Error (preserved from original) ────────────────────────── */
+
+.game-error-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 2rem;
+    gap: 1rem;
+    height: 100%;
+}
+
+.game-error-box .game-error-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(233, 69, 96, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.game-error-box h3 {
+    font-size: 1.2rem;
+}
+
+.game-error-box p {
+    color: var(--text-secondary);
+    max-width: 360px;
+    font-size: 0.85rem;
+    line-height: 1.5;
 }

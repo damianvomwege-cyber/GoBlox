@@ -40,7 +40,8 @@ const categoryPalettes = {
     'Simon Says':      [['#e74c3c', '#f1c40f'], ['#2ecc71', '#3498db'], ['#e84393', '#fdcb6e']],
     'Space':           [['#2d3436', '#6c5ce7'], ['#0c2461', '#4834d4'], ['#130f40', '#6c5ce7']],
     'Bubble Shooter':  [['#e84393', '#fd79a8'], ['#00cec9', '#81ecec'], ['#a29bfe', '#6c5ce7']],
-    'Catch':           [['#f39c12', '#fdcb6e'], ['#00b894', '#55efc4'], ['#0984e3', '#74b9ff']]
+    'Catch':           [['#f39c12', '#fdcb6e'], ['#00b894', '#55efc4'], ['#0984e3', '#74b9ff']],
+    'Obby':            [['#ff6b6b', '#feca57'], ['#00ff87', '#60efff'], ['#6c5ce7', '#a29bfe']],
 };
 
 const defaultPalette = [['#636e72', '#b2bec3'], ['#6c5ce7', '#a29bfe'], ['#e17055', '#fab1a0']];
@@ -703,6 +704,41 @@ const iconDrawers = {
         ctx.lineTo(80, 120);
         ctx.stroke();
         ctx.setLineDash([]);
+    },
+
+    'Obby'(ctx, w, h, rng) {
+        // Obstacle course platforms at different heights
+        const colors = ['rgba(255,100,100,0.8)', 'rgba(100,200,255,0.8)', 'rgba(255,200,100,0.8)', 'rgba(100,255,100,0.8)', 'rgba(200,100,255,0.8)'];
+        const platforms = [
+            [20, 160, 50, 10], [60, 135, 40, 10], [95, 110, 45, 10],
+            [130, 85, 35, 10], [155, 55, 40, 10],
+        ];
+        platforms.forEach(([x, y, w2, h2], i) => {
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fillRect(x, y, w2, h2);
+        });
+        // Checkpoint flag on last platform
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(170, 55);
+        ctx.lineTo(170, 25);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0,255,100,0.8)';
+        ctx.fillRect(170, 25, 15, 10);
+        // Kill brick (red spinner)
+        ctx.fillStyle = 'rgba(255,50,50,0.7)';
+        ctx.save();
+        ctx.translate(80, 125);
+        ctx.rotate(0.5);
+        ctx.fillRect(-12, -4, 24, 8);
+        ctx.restore();
+        // Character jumping
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(45, 118, 10, 14);
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(48, 121, 3, 3);
+        ctx.fillRect(52, 121, 3, 3);
     },
 
     'Catch'(ctx, w, h, rng) {

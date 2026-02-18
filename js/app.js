@@ -1,16 +1,24 @@
 import { Router } from './router.js';
 import { Auth } from './auth.js';
+import { initTooltips } from './components/tooltip.js';
 
 const router = new Router();
 const content = document.getElementById('content');
 const sidebar = document.getElementById('sidebar');
+const topbar = document.getElementById('topbar');
 
 let sidebarRendered = false;
+let topbarRendered = false;
 let sidebarMod = null;
+let chatMod = null;
+let chatInitialized = false;
 let navId = 0;
 
 // Loaded module references for cleanup
 const mods = {};
+
+// ── Initialize global systems ───────────────────────────────────────
+initTooltips();
 
 // ── Restore saved theme ─────────────────────────────────────────────
 (function restoreTheme() {
@@ -50,7 +58,7 @@ function triggerPageTransition() {
     content.classList.add('page-transition');
 }
 
-// ── Sidebar (lazy) ──────────────────────────────────────────────────
+// ── Sidebar + Topbar (lazy) ─────────────────────────────────────────
 async function ensureSidebar() {
     if (!sidebarMod) {
         const [mod] = await Promise.all([
@@ -62,6 +70,34 @@ async function ensureSidebar() {
     if (!sidebarRendered || !sidebar.querySelector('.sidebar-inner')) {
         sidebarMod.renderSidebar(sidebar, router);
         sidebarRendered = true;
+    }
+    // Always re-render topbar (updates title, GoBux, etc.)
+    if (topbar) {
+        topbar.classList.remove('hidden');
+        sidebarMod.renderTopbar(topbar, router);
+        topbarRendered = true;
+    }
+}
+
+// ── Chat (lazy) ────────────────────────────────────────────────────
+async function ensureChat() {
+    if (!chatMod) {
+        const [mod] = await Promise.all([
+            import('./components/chat.js'),
+            loadCSS('css/chat.css'),
+        ]);
+        chatMod = mod;
+    }
+    if (!chatInitialized) {
+        chatMod.initChat();
+        chatInitialized = true;
+    }
+}
+
+function destroyChatWidget() {
+    if (chatMod) {
+        chatMod.destroyChat();
+        chatInitialized = false;
     }
 }
 
@@ -80,10 +116,18 @@ function cleanupCreate() {
     }
 }
 
+function cleanupAvatarEditor() {
+    if (mods.avatarPage?.renderAvatar?._cleanup) {
+        mods.avatarPage.renderAvatar._cleanup();
+        mods.avatarPage.renderAvatar._cleanup = null;
+    }
+}
+
 function cleanupAvatars() {
     mods.home?.renderHome?._cleanup?.();
     mods.profile?.renderProfile?._cleanup?.();
     mods.avatar?.cleanupPageAvatars?.();
+    cleanupAvatarEditor();
 }
 
 function cleanupAll() {
@@ -114,8 +158,11 @@ function requireAuth(renderFn) {
         const thisNav = ++navId;
         sidebar.classList.remove('hidden');
         content.style.padding = '2rem';
+        content.style.marginTop = '';
+        content.style.marginLeft = '';
         showLoading();
         await ensureSidebar();
+        ensureChat();
         if (isStale(thisNav)) return;
         sidebarMod.updateSidebarActive();
         triggerPageTransition();
@@ -123,16 +170,13 @@ function requireAuth(renderFn) {
     };
 }
 
-// ── 404 page ────────────────────────────────────────────────────────
-function render404() {
-    content.innerHTML = `
-        <div class="not-found-page animate-fade-in" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;">
-            <div style="font-size:5rem;font-weight:900;color:var(--accent-primary);line-height:1;">404</div>
-            <h2 style="margin-top:1rem;font-size:1.5rem;">Seite nicht gefunden</h2>
-            <p class="text-secondary" style="margin-top:0.5rem;max-width:400px;">Die Seite existiert nicht oder wurde verschoben.</p>
-            <a href="#/home" class="btn mt-3">Zurueck zur Startseite</a>
-        </div>
-    `;
+// ── 404 page (enhanced) ─────────────────────────────────────────────
+async function render404() {
+    const [mod] = await Promise.all([
+        import('./pages/not-found.js'),
+        loadCSS('css/not-found.css'),
+    ]);
+    mod.renderNotFound(content);
 }
 
 // ── Route: Home ─────────────────────────────────────────────────────
@@ -155,9 +199,14 @@ router
         cleanupAll();
         if (Auth.currentUser()) { router.navigate('#/home'); return; }
         sidebar.classList.add('hidden');
+        if (topbar) topbar.classList.add('hidden');
         if (sidebarMod) { sidebarMod.cleanupSidebar(); }
+        destroyChatWidget();
         sidebarRendered = false;
+        topbarRendered = false;
         content.style.padding = '0';
+        content.style.marginTop = '0';
+        content.style.marginLeft = '0';
         showLoading();
         const [mod] = await Promise.all([
             import('./pages/login.js'),
@@ -195,6 +244,17 @@ router
         mod.renderGame(content, router, ...params);
     }))
 
+    .on('/avatar', requireAuth(async (thisNav) => {
+        cleanupAll();
+        const [mod] = await Promise.all([
+            import('./pages/avatar.js'),
+            loadCSS('css/avatar.css'),
+        ]);
+        if (isStale(thisNav)) return;
+        mods.avatarPage = mod;
+        mod.renderAvatar(content, router);
+    }))
+
     .on('/profile', requireAuth(async (thisNav) => {
         cleanupAll();
         const [mod, avatarMod] = await Promise.all([
@@ -226,6 +286,16 @@ router
         ]);
         if (isStale(thisNav)) return;
         mod.renderLeaderboard(content, router);
+    }))
+
+    .on('/groups', requireAuth(async (thisNav) => {
+        cleanupAll();
+        const [mod] = await Promise.all([
+            import('./pages/groups.js'),
+            loadCSS('css/groups.css'),
+        ]);
+        if (isStale(thisNav)) return;
+        mod.renderGroups(content, router);
     }))
 
     .on('/store', requireAuth(async (thisNav) => {
@@ -265,9 +335,14 @@ router
         cleanupGame();
         cleanupAvatars();
         sidebar.classList.add('hidden');
+        if (topbar) topbar.classList.add('hidden');
         if (sidebarMod) { sidebarMod.cleanupSidebar(); }
         sidebarRendered = false;
+        topbarRendered = false;
         content.style.padding = '0';
+        content.style.marginTop = '0';
+        content.style.marginLeft = '0';
+        ensureChat();
         showLoading();
         const [mod] = await Promise.all([
             import('./pages/create.js'),

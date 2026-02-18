@@ -1,11 +1,10 @@
-// js/pages/home.js
+// js/pages/home.js — Roblox-style Homepage
 import { Auth } from '../auth.js';
 import { GameRegistry } from '../games/loader.js';
-import { GoBux, GOBUX_ICON, GOBUX_ICON_LG } from '../gobux.js';
+import { GoBux, GOBUX_ICON } from '../gobux.js';
 
-/**
- * Seeded pseudo-random number generator (mulberry32).
- */
+/* ── Helpers ── */
+
 function seededRandom(seed) {
     return function () {
         seed |= 0;
@@ -30,7 +29,6 @@ function seededShuffle(arr, rng) {
     return a;
 }
 
-// Deterministic player count from game ID
 function getPlayerCount(gameId) {
     let s = gameId * 2654435761;
     s = ((s >>> 16) ^ s) * 0x45d9f3b;
@@ -43,249 +41,51 @@ function formatPlayerCount(count) {
     return count.toString();
 }
 
-// Deterministic like percentage
 function getLikePercent(gameId) {
     let s = gameId * 1664525 + 1013904223;
     s = ((s >>> 16) ^ s);
-    return 60 + (Math.abs(s) % 40); // 60-99%
+    return 60 + (Math.abs(s) % 40);
 }
 
-// Category gradients (darker, more saturated)
-const CAT_GRADIENTS = [
-    'linear-gradient(135deg, #1a8a5c, #0d6b42)',
-    'linear-gradient(135deg, #c0392b, #96281b)',
-    'linear-gradient(135deg, #2980b9, #1a5276)',
-    'linear-gradient(135deg, #8e44ad, #6c3483)',
-    'linear-gradient(135deg, #d68910, #b7950b)',
-    'linear-gradient(135deg, #16a085, #0e6655)',
-    'linear-gradient(135deg, #2c3e50, #1a252f)',
-    'linear-gradient(135deg, #e74c3c, #c0392b)',
-    'linear-gradient(135deg, #3498db, #2471a3)',
-    'linear-gradient(135deg, #27ae60, #1e8449)',
-    'linear-gradient(135deg, #e67e22, #ca6f1e)',
-    'linear-gradient(135deg, #9b59b6, #7d3c98)',
+/* Thumbnail color palette for games without images */
+const THUMB_COLORS = [
+    ['#1a8a5c', '#0d6b42'], ['#c0392b', '#96281b'], ['#2980b9', '#1a5276'],
+    ['#8e44ad', '#6c3483'], ['#d68910', '#b7950b'], ['#16a085', '#0e6655'],
+    ['#e74c3c', '#c0392b'], ['#3498db', '#2471a3'], ['#27ae60', '#1e8449'],
+    ['#e67e22', '#ca6f1e'], ['#9b59b6', '#7d3c98'], ['#2c3e50', '#1a252f'],
 ];
 
-export function renderHome(container, router) {
-    const user = Auth.currentUser();
-    if (!user) return;
-
-    const allGames = GameRegistry.getAllGames();
-    const categories = GameRegistry.getCategories();
-
-    const rng = seededRandom(getDailySeed());
-    const featured = seededShuffle(allGames, rng).slice(0, 12);
-    const heroGame = featured[0];
-
-    // Popular games (sorted by player count)
-    const popular = [...allGames].sort((a, b) => getPlayerCount(b.id) - getPlayerCount(a.id)).slice(0, 12);
-
-    // Recent games
-    const recentGames = (user.recentGames || []).slice(0, 10);
-    const recentGameObjects = recentGames
-        .map(rg => {
-            const game = GameRegistry.getGame(rg.gameId);
-            return game ? { ...game, recentScore: rg.score } : null;
-        })
-        .filter(Boolean);
-
-    // User-created games
-    let myGames = [];
-    try {
-        const created = JSON.parse(localStorage.getItem('goblox_created_games') || '{}');
-        myGames = Object.entries(created).map(([id, g]) => ({
-            id,
-            name: g.name || 'Unbenannt',
-            template: g.template,
-            published: !!g.published,
-            updatedAt: g.updatedAt || g.createdAt || 0,
-        })).sort((a, b) => b.updatedAt - a.updatedAt);
-    } catch (e) { /* ignore */ }
-
-    const heroPlayers = getPlayerCount(heroGame.id);
-    const heroLike = getLikePercent(heroGame.id);
-
-    container.innerHTML = `
-        <div class="home-page animate-fade-in">
-            <!-- Hero Banner -->
-            <div class="home-hero" data-game-id="${heroGame.id}">
-                <img class="home-hero-img" src="${heroGame.thumbnail}" alt="${heroGame.name}" />
-                <div class="home-hero-overlay">
-                    <div class="home-hero-badge">Empfohlen</div>
-                    <div class="home-hero-title">${heroGame.name}</div>
-                    <div class="home-hero-meta">
-                        <span class="home-hero-playing">
-                            <span class="home-hero-dot"></span>
-                            ${formatPlayerCount(heroPlayers)} spielen
-                        </span>
-                        <span class="home-hero-like">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
-                            ${heroLike}%
-                        </span>
-                        <span>${heroGame.category}</span>
-                    </div>
-                </div>
-            </div>
-
-            ${myGames.length > 0 ? `
-            <!-- My Games -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Meine Spiele</h2>
-                    <a href="#/create" class="home-see-all">Neues Spiel</a>
-                </div>
-                <div class="home-scroll-row">
-                    ${myGames.map(g => myGameCard(g)).join('')}
-                </div>
-            </section>
-            ` : ''}
-
-            ${recentGameObjects.length > 0 ? `
-            <!-- Continue Playing -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Weiterspielen</h2>
-                </div>
-                <div class="home-scroll-row">
-                    ${recentGameObjects.map(g => gameCard(g)).join('')}
-                </div>
-            </section>
-            ` : ''}
-
-            <!-- Popular -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Beliebt</h2>
-                    <a href="#/games" class="home-see-all">Alle anzeigen</a>
-                </div>
-                <div class="home-scroll-row">
-                    ${popular.map(g => gameCard(g)).join('')}
-                </div>
-            </section>
-
-            <!-- Featured Games -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Empfohlen fuer dich</h2>
-                    <a href="#/games" class="home-see-all">Alle anzeigen</a>
-                </div>
-                <div class="home-scroll-row">
-                    ${featured.slice(1).map(g => gameCard(g)).join('')}
-                </div>
-            </section>
-
-            <!-- Categories -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Kategorien</h2>
-                </div>
-                <div class="home-cat-grid">
-                    ${categories.slice(0, 8).map((cat, i) => `
-                        <div class="home-cat-card" data-category="${cat.name}" style="background:${CAT_GRADIENTS[i % CAT_GRADIENTS.length]};">
-                            <div class="home-cat-name">${cat.name}</div>
-                            <div class="home-cat-count">${cat.count} Spiele</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </section>
-
-            <!-- Quick Stats -->
-            <section class="home-section">
-                <div class="home-section-header">
-                    <h2>Deine Statistiken</h2>
-                </div>
-                <div class="home-quick-stats">
-                    <div class="home-quick-stat">
-                        <div class="home-quick-stat-value" style="color:#ffd700;display:flex;align-items:center;justify-content:center;gap:0.3rem;">
-                            ${GOBUX_ICON}
-                            ${GoBux.getBalance(user.id).toLocaleString('de-DE')}
-                        </div>
-                        <div class="home-quick-stat-label">GoBux</div>
-                    </div>
-                    <div class="home-quick-stat">
-                        <div class="home-quick-stat-value">${(user.gamesPlayed || 0).toLocaleString('de-DE')}</div>
-                        <div class="home-quick-stat-label">Gespielt</div>
-                    </div>
-                    <div class="home-quick-stat">
-                        <div class="home-quick-stat-value">${(user.totalScore || 0).toLocaleString('de-DE')}</div>
-                        <div class="home-quick-stat-label">Gesamtpunkte</div>
-                    </div>
-                    <div class="home-quick-stat">
-                        <div class="home-quick-stat-value">${(user.favorites || []).length}</div>
-                        <div class="home-quick-stat-label">Favoriten</div>
-                    </div>
-                </div>
-                <div class="home-gobux-tip">
-                    <div class="home-gobux-tip-icon">${GOBUX_ICON_LG}</div>
-                    <div class="home-gobux-tip-text">
-                        <h4>GoBux verdienen</h4>
-                        <p>Spiele Spiele um GoBux zu verdienen! Gib sie im <a href="#/store" style="color:#ffd700;text-decoration:underline;">Shop</a> fuer Game Passes aus!</p>
-                    </div>
-                </div>
-            </section>
-        </div>
-    `;
-
-    // Hero click
-    const hero = container.querySelector('.home-hero');
-    if (hero) {
-        hero.addEventListener('click', () => {
-            router.navigate(`#/game/${hero.dataset.gameId}`);
-        });
-    }
-
-    // Game card clicks
-    container.querySelectorAll('.home-game-card').forEach(card => {
-        card.addEventListener('click', () => {
-            router.navigate(`#/game/${card.dataset.gameId}`);
-        });
-    });
-
-    // My game card button clicks
-    container.querySelectorAll('.home-mygame-card').forEach(card => {
-        const gameId = card.dataset.gameId;
-        const editBtn = card.querySelector('.home-mygame-edit');
-        const playBtn = card.querySelector('.home-mygame-play');
-        if (editBtn) {
-            editBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                router.navigate(`#/create/${gameId}`);
-            });
-        }
-        if (playBtn) {
-            playBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                router.navigate(`#/game/${gameId}`);
-            });
-        }
-    });
-
-    // Category card clicks
-    container.querySelectorAll('.home-cat-card').forEach(card => {
-        card.addEventListener('click', () => {
-            router.navigate('#/games');
-        });
-    });
+function thumbGradient(id) {
+    const pair = THUMB_COLORS[id % THUMB_COLORS.length];
+    return `linear-gradient(135deg, ${pair[0]}, ${pair[1]})`;
 }
 
-renderHome._cleanup = function () {};
+/* ── Cleanup state ── */
+let _heroInterval = null;
+let _searchTimeout = null;
+let _listeners = [];
 
+/* ── Game Card HTML ── */
 function gameCard(game) {
     const players = getPlayerCount(game.id);
     const likePercent = getLikePercent(game.id);
+    const hasThumbnail = game.thumbnail && !game.thumbnail.includes('undefined');
     return `
-        <div class="home-game-card" data-game-id="${game.id}">
-            <div class="home-game-thumb">
-                <img src="${game.thumbnail}" alt="${game.name}" loading="lazy" />
+        <div class="hm-game-card" data-game-id="${game.id}">
+            <div class="hm-game-thumb" style="background:${thumbGradient(game.id)}">
+                ${hasThumbnail ? `<img src="${game.thumbnail}" alt="${game.name}" loading="lazy" />` : `
+                <div class="hm-game-thumb-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)" stroke="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M10 8l6 4-6 4V8z" fill="rgba(255,255,255,0.6)"/></svg>
+                </div>`}
             </div>
-            <div class="home-game-info">
-                <div class="home-game-name">${game.name}</div>
-                <div class="home-game-meta">
-                    <span class="home-game-playing">
-                        <span class="home-game-dot"></span>
-                        ${formatPlayerCount(players)}
+            <div class="hm-game-info">
+                <div class="hm-game-name">${game.name}</div>
+                <div class="hm-game-stats">
+                    <span class="hm-game-players">
+                        <span class="hm-dot"></span>
+                        ${formatPlayerCount(players)} aktiv
                     </span>
-                    <span class="home-game-like">
+                    <span class="hm-game-likes">
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
                         ${likePercent}%
                     </span>
@@ -295,31 +95,304 @@ function gameCard(game) {
     `;
 }
 
-function myGameCard(game) {
-    const templateLabel = game.template === 'platformer-2d' ? '2D Platformer' : '3D Obby';
-    const accentColor = game.template === 'platformer-2d' ? '#00ff87' : '#60efff';
-    const statusBadge = game.published
-        ? '<span class="home-mygame-status home-mygame-published">Live</span>'
-        : '<span class="home-mygame-status home-mygame-draft">Entwurf</span>';
+/* ── Carousel Section HTML ── */
+function carouselSection(title, games, linkHref, linkText, id) {
+    if (!games || games.length === 0) return '';
     return `
-        <div class="home-mygame-card" data-game-id="${game.id}">
-            <div class="home-mygame-thumb" style="background: linear-gradient(135deg, ${accentColor}33, ${accentColor}11);">
-                <span class="home-mygame-type" style="color:${accentColor};">${templateLabel}</span>
-                ${statusBadge}
+        <section class="hm-carousel-section" id="${id}">
+            <div class="hm-carousel-header">
+                <h2 class="hm-carousel-title">${title}</h2>
+                ${linkHref ? `<a href="${linkHref}" class="hm-carousel-link">${linkText || 'Alle anzeigen'} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></a>` : ''}
             </div>
-            <div class="home-mygame-info">
-                <div class="home-mygame-name">${game.name}</div>
-                <div class="home-mygame-actions">
-                    <button class="home-mygame-edit" title="Bearbeiten">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    ${game.published ? `
-                    <button class="home-mygame-play" title="Spielen">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    </button>
-                    ` : ''}
+            <div class="hm-carousel-wrapper">
+                <button class="hm-carousel-arrow hm-arrow-left" aria-label="Zurueck">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <div class="hm-carousel-track">
+                    ${games.map(g => gameCard(g)).join('')}
                 </div>
+                <button class="hm-carousel-arrow hm-arrow-right" aria-label="Weiter">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
             </div>
-        </div>
+        </section>
     `;
 }
+
+/* ── Main Render ── */
+export function renderHome(container, router) {
+    const user = Auth.currentUser();
+    if (!user) return;
+
+    const allGames = GameRegistry.getAllGames();
+    const rng = seededRandom(getDailySeed());
+
+    // Build data sets
+    const shuffled = seededShuffle(allGames, rng);
+    const heroGames = shuffled.slice(0, 5);
+    const popular = [...allGames].sort((a, b) => getPlayerCount(b.id) - getPlayerCount(a.id)).slice(0, 20);
+    const recommended = seededShuffle(allGames, seededRandom(getDailySeed() + 7)).slice(0, 20);
+    const trending = seededShuffle(allGames, seededRandom(getDailySeed() + 42)).slice(0, 20);
+
+    // Recent games
+    const recentRaw = (user.recentGames || []).slice(0, 12);
+    const recentGames = recentRaw
+        .map(rg => {
+            const game = GameRegistry.getGame(rg.gameId);
+            return game ? { ...game, recentScore: rg.score } : null;
+        })
+        .filter(Boolean);
+
+    // GoBux balance
+    const balance = GoBux.getBalance(user.id);
+
+    // Initial hero
+    let heroIndex = 0;
+    const hero = heroGames[heroIndex];
+    const heroPlayers = getPlayerCount(hero.id);
+    const heroLike = getLikePercent(hero.id);
+
+    container.innerHTML = `
+        <div class="hm-page animate-fade-in">
+            <!-- Top Bar -->
+            <div class="hm-topbar">
+                <div class="hm-search-wrap">
+                    <svg class="hm-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="hm-search-input" placeholder="Spiele durchsuchen..." />
+                    <div class="hm-search-results hidden"></div>
+                </div>
+                <div class="hm-topbar-right">
+                    <div class="hm-gobux-badge" title="GoBux Guthaben">
+                        ${GOBUX_ICON}
+                        <span class="hm-gobux-amount">${balance.toLocaleString('de-DE')}</span>
+                    </div>
+                    <button class="hm-notif-btn" title="Benachrichtigungen">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <span class="hm-notif-dot"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hero Banner -->
+            <div class="hm-hero" data-game-id="${hero.id}">
+                <div class="hm-hero-bg" style="background:${thumbGradient(hero.id)}">
+                    ${hero.thumbnail ? `<img class="hm-hero-img" src="${hero.thumbnail}" alt="${hero.name}" />` : ''}
+                </div>
+                <div class="hm-hero-overlay">
+                    <div class="hm-hero-content">
+                        <span class="hm-hero-badge">Empfohlen</span>
+                        <h1 class="hm-hero-title">${hero.name}</h1>
+                        <p class="hm-hero-desc">${hero.category}</p>
+                        <div class="hm-hero-meta">
+                            <span class="hm-hero-players">
+                                <span class="hm-dot hm-dot-lg"></span>
+                                ${formatPlayerCount(heroPlayers)} spielen
+                            </span>
+                            <span class="hm-hero-likes">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg>
+                                ${heroLike}%
+                            </span>
+                        </div>
+                        <button class="hm-hero-play-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Jetzt spielen
+                        </button>
+                    </div>
+                    <div class="hm-hero-dots">
+                        ${heroGames.map((_, i) => `<button class="hm-hero-dot-btn ${i === 0 ? 'active' : ''}" data-index="${i}"></button>`).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carousels -->
+            ${carouselSection('Weiterspielen', recentGames, null, null, 'hm-continue')}
+            ${carouselSection('Beliebt', popular, '#/games', 'Alle anzeigen', 'hm-popular')}
+            ${carouselSection('Empfohlen fuer dich', recommended, '#/games', 'Alle anzeigen', 'hm-recommended')}
+            ${carouselSection('Trending', trending, '#/games', 'Alle anzeigen', 'hm-trending')}
+        </div>
+    `;
+
+    /* ── Event Wiring ── */
+
+    // Helper: add event + track for cleanup
+    function on(el, evt, fn) {
+        if (!el) return;
+        el.addEventListener(evt, fn);
+        _listeners.push({ el, evt, fn });
+    }
+
+    // Hero click / play button
+    const heroEl = container.querySelector('.hm-hero');
+    const heroPlayBtn = container.querySelector('.hm-hero-play-btn');
+    on(heroPlayBtn, 'click', (e) => {
+        e.stopPropagation();
+        router.navigate(`#/game/${heroEl.dataset.gameId}`);
+    });
+    on(heroEl, 'click', () => {
+        router.navigate(`#/game/${heroEl.dataset.gameId}`);
+    });
+
+    // Hero banner rotation
+    function updateHero(index) {
+        heroIndex = index;
+        const g = heroGames[index];
+        const pl = getPlayerCount(g.id);
+        const lk = getLikePercent(g.id);
+
+        heroEl.dataset.gameId = g.id;
+        const bg = heroEl.querySelector('.hm-hero-bg');
+        bg.style.background = thumbGradient(g.id);
+        const img = heroEl.querySelector('.hm-hero-img');
+        if (img && g.thumbnail) {
+            img.src = g.thumbnail;
+            img.alt = g.name;
+        }
+
+        heroEl.querySelector('.hm-hero-title').textContent = g.name;
+        heroEl.querySelector('.hm-hero-desc').textContent = g.category;
+        heroEl.querySelector('.hm-hero-players').innerHTML =
+            `<span class="hm-dot hm-dot-lg"></span> ${formatPlayerCount(pl)} spielen`;
+        heroEl.querySelector('.hm-hero-likes').innerHTML =
+            `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 10h3v10H2V10zm5.6 0c-.4 0-.6.3-.6.6v8.8c0 .3.3.6.6.6H18l2-6.5V10H7.6z"/></svg> ${lk}%`;
+
+        // Update dots
+        heroEl.querySelectorAll('.hm-hero-dot-btn').forEach((d, i) => {
+            d.classList.toggle('active', i === index);
+        });
+
+        // Animate
+        const content = heroEl.querySelector('.hm-hero-content');
+        content.style.animation = 'none';
+        content.offsetHeight; // reflow
+        content.style.animation = 'hmHeroFadeIn 0.4s ease forwards';
+    }
+
+    // Hero dot buttons
+    heroEl.querySelectorAll('.hm-hero-dot-btn').forEach(btn => {
+        on(btn, 'click', (e) => {
+            e.stopPropagation();
+            updateHero(parseInt(btn.dataset.index));
+            resetHeroTimer();
+        });
+    });
+
+    // Auto-rotate hero
+    function resetHeroTimer() {
+        if (_heroInterval) clearInterval(_heroInterval);
+        _heroInterval = setInterval(() => {
+            updateHero((heroIndex + 1) % heroGames.length);
+        }, 6000);
+    }
+    resetHeroTimer();
+
+    // Game card clicks
+    container.querySelectorAll('.hm-game-card').forEach(card => {
+        on(card, 'click', () => {
+            router.navigate(`#/game/${card.dataset.gameId}`);
+        });
+    });
+
+    // Carousel arrow buttons
+    container.querySelectorAll('.hm-carousel-wrapper').forEach(wrapper => {
+        const track = wrapper.querySelector('.hm-carousel-track');
+        const leftBtn = wrapper.querySelector('.hm-arrow-left');
+        const rightBtn = wrapper.querySelector('.hm-arrow-right');
+        const scrollAmount = 600;
+
+        function updateArrowVisibility() {
+            const { scrollLeft, scrollWidth, clientWidth } = track;
+            leftBtn.classList.toggle('hm-arrow-hidden', scrollLeft <= 5);
+            rightBtn.classList.toggle('hm-arrow-hidden', scrollLeft + clientWidth >= scrollWidth - 5);
+        }
+
+        on(leftBtn, 'click', () => {
+            track.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        });
+        on(rightBtn, 'click', () => {
+            track.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        });
+        on(track, 'scroll', updateArrowVisibility);
+
+        // Initial state
+        updateArrowVisibility();
+    });
+
+    // Search
+    const searchInput = container.querySelector('.hm-search-input');
+    const searchResults = container.querySelector('.hm-search-results');
+
+    on(searchInput, 'input', () => {
+        clearTimeout(_searchTimeout);
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+            searchResults.classList.add('hidden');
+            searchResults.innerHTML = '';
+            return;
+        }
+        _searchTimeout = setTimeout(() => {
+            const results = GameRegistry.searchGames(query).slice(0, 8);
+            if (results.length === 0) {
+                searchResults.innerHTML = `<div class="hm-search-empty">Keine Spiele gefunden</div>`;
+            } else {
+                searchResults.innerHTML = results.map(g => `
+                    <div class="hm-search-item" data-game-id="${g.id}">
+                        <div class="hm-search-item-thumb" style="background:${thumbGradient(g.id)}">
+                            ${g.thumbnail ? `<img src="${g.thumbnail}" alt="" loading="lazy" />` : ''}
+                        </div>
+                        <div class="hm-search-item-info">
+                            <div class="hm-search-item-name">${g.name}</div>
+                            <div class="hm-search-item-meta">
+                                <span class="hm-dot"></span>
+                                ${formatPlayerCount(getPlayerCount(g.id))} aktiv
+                                &middot; ${g.category}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            searchResults.classList.remove('hidden');
+
+            // Wire search result clicks
+            searchResults.querySelectorAll('.hm-search-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    router.navigate(`#/game/${item.dataset.gameId}`);
+                });
+            });
+        }, 200);
+    });
+
+    // Close search on outside click
+    on(document, 'click', (e) => {
+        if (!e.target.closest('.hm-search-wrap')) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    // GoBux badge click -> store
+    const gobuxBadge = container.querySelector('.hm-gobux-badge');
+    on(gobuxBadge, 'click', () => {
+        router.navigate('#/store');
+    });
+
+    // Notification bell (no-op for now, visual only)
+    const notifBtn = container.querySelector('.hm-notif-btn');
+    on(notifBtn, 'click', () => {
+        // Could open a notification panel in the future
+    });
+}
+
+/* ── Cleanup ── */
+renderHome._cleanup = function () {
+    if (_heroInterval) {
+        clearInterval(_heroInterval);
+        _heroInterval = null;
+    }
+    if (_searchTimeout) {
+        clearTimeout(_searchTimeout);
+        _searchTimeout = null;
+    }
+    _listeners.forEach(({ el, evt, fn }) => {
+        try { el.removeEventListener(evt, fn); } catch (e) { /* ignore */ }
+    });
+    _listeners = [];
+};

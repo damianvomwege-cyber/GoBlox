@@ -442,6 +442,7 @@ export function create3DAvatar(container, config, options = {}) {
         rotateSpeed = 0.008,
         background = 'transparent',
         enableControls = false,
+        enableZoom = false,
     } = options;
 
     // ── Scene ──
@@ -494,7 +495,11 @@ export function create3DAvatar(container, config, options = {}) {
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.08;
-        controls.enableZoom = false;
+        controls.enableZoom = enableZoom;
+        if (enableZoom) {
+            controls.minDistance = 4;
+            controls.maxDistance = 14;
+        }
         controls.enablePan = false;
         controls.target.set(0, 0.8, 0);
         controls.minPolarAngle = Math.PI * 0.25;

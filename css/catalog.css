@@ -1,44 +1,68 @@
 /* ===========================
-   Discover/Catalog - Roblox Style
+   Catalog / Discover - Roblox Style
    =========================== */
+
+/* ── Page Container ── */
 
 .catalog-page {
     max-width: 1400px;
     margin: 0 auto;
+    padding-bottom: 2rem;
 }
 
-/* ── Search Bar ── */
+/* ── Header with Title + Search ── */
+
+.catalog-header {
+    margin-bottom: 1rem;
+}
+
+.catalog-title {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+}
 
 .catalog-search-wrap {
     position: relative;
-    margin-bottom: 0.75rem;
+    max-width: 480px;
 }
 
 .catalog-search-icon {
     position: absolute;
-    left: 12px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
     color: var(--text-secondary);
-    opacity: 0.4;
+    opacity: 0.5;
     pointer-events: none;
+    transition: opacity var(--transition-fast);
+}
+
+.catalog-search-wrap:focus-within .catalog-search-icon {
+    opacity: 0.8;
+    color: var(--accent-primary);
 }
 
 .catalog-search {
     width: 100%;
-    padding: 0.7rem 0.85rem 0.7rem 2.5rem;
+    padding: 0.6rem 2.5rem 0.6rem 2.6rem;
     background-color: var(--bg-card);
     color: var(--text-primary);
-    border: 2px solid transparent;
-    border-radius: 20px;
-    font-size: 0.9rem;
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: 28px;
+    font-size: 0.88rem;
     outline: none;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
 .catalog-search:focus {
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(0, 176, 111, 0.12);
+    background-color: var(--bg-secondary);
 }
 
 .catalog-search::placeholder {
@@ -46,16 +70,53 @@
     opacity: 0.5;
 }
 
+.catalog-search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.catalog-search-clear:hover {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
 /* ── Category Pills ── */
+
+.catalog-categories-wrap {
+    position: relative;
+    margin-bottom: 0.85rem;
+}
+
+/* Fade edges for horizontal scroll hint */
+.catalog-categories-wrap::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    background: linear-gradient(to right, transparent, var(--bg-primary));
+    pointer-events: none;
+    z-index: 1;
+}
 
 .catalog-categories {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.35rem;
     overflow-x: auto;
-    padding-bottom: 0.4rem;
-    margin-bottom: 0.75rem;
+    padding-bottom: 0.35rem;
+    padding-right: 3rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    scroll-behavior: smooth;
 }
 
 .catalog-categories::-webkit-scrollbar {
@@ -64,16 +125,20 @@
 
 .catalog-pill {
     flex-shrink: 0;
-    padding: 0.35rem 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.85rem;
+    background: rgba(255, 255, 255, 0.06);
     color: var(--text-secondary);
-    border: none;
-    border-radius: 6px;
+    border: 1px solid transparent;
+    border-radius: 20px;
     font-size: 0.78rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all var(--transition-fast);
     white-space: nowrap;
+    user-select: none;
 }
 
 .catalog-pill:hover {
@@ -84,55 +149,76 @@
 .catalog-pill.active {
     background: var(--accent-primary);
     color: #fff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 8px rgba(0, 176, 111, 0.25);
 }
 
 .catalog-pill-count {
-    opacity: 0.6;
-    font-size: 0.68rem;
-    margin-left: 0.15rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    opacity: 0.55;
+    min-width: 1.1rem;
+    text-align: center;
 }
 
 .catalog-pill.active .catalog-pill-count {
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
-/* ── Toolbar ── */
+/* ── Toolbar (count + sort) ── */
 
 .catalog-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
+    padding: 0 0.1rem;
 }
 
 .catalog-count {
     color: var(--text-secondary);
     font-size: 0.82rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .catalog-sort-wrap {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.catalog-sort-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .catalog-sort {
-    padding: 0.35rem 1.6rem 0.35rem 0.65rem;
+    padding: 0.35rem 2rem 0.35rem 0.7rem;
     background: var(--bg-card);
     color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
     font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
     outline: none;
     appearance: none;
     -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23bdbebe' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23bdbebe' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.catalog-sort:hover {
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .catalog-sort:focus {
     border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 176, 111, 0.1);
 }
 
 .catalog-sort option {
@@ -144,117 +230,249 @@
 
 .catalog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
 }
 
-/* ── Game Card ── */
+/* ══════════════════════════════════════════════
+   Roblox-Style Game Card
+   ══════════════════════════════════════════════ */
 
-.catalog-card {
+.rblx-card {
+    position: relative;
     background: var(--bg-card);
-    border-radius: var(--border-radius);
+    border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1),
+                box-shadow 0.2s ease,
+                border-color 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    animation: rblxCardIn 0.3s ease both;
 }
 
-.catalog-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+@keyframes rblxCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
-.catalog-card-thumb {
-    aspect-ratio: 1;
+.rblx-card:hover {
+    transform: scale(1.03);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    z-index: 2;
+}
+
+.rblx-card:active {
+    transform: scale(0.99);
+    transition-duration: 0.08s;
+}
+
+/* ── Thumbnail Area (16:9) ── */
+
+.rblx-card__thumb {
+    position: relative;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     background: var(--bg-primary);
-    position: relative;
+    border-radius: 12px 12px 0 0;
 }
 
-.catalog-card-thumb img {
+.rblx-card__img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform var(--transition-fast);
+    transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.catalog-card:hover .catalog-card-thumb img {
-    transform: scale(1.05);
+.rblx-card:hover .rblx-card__img {
+    transform: scale(1.08);
 }
 
-.catalog-card-info {
-    padding: 0.5rem 0.6rem;
+/* Gradient thumbnail fallback (for games without thumbnail image) */
+.rblx-card__gradient {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
-.catalog-card-name {
+/* Subtle pattern overlay on gradient */
+.rblx-card__gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255,255,255,0.05) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.rblx-card__gradient::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.25) 100%);
+    pointer-events: none;
+}
+
+.rblx-card__icon {
+    width: 48px;
+    height: 48px;
+    color: rgba(255, 255, 255, 0.55);
+    z-index: 1;
+    transition: transform 0.3s ease, color 0.3s ease;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.rblx-card__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.rblx-card:hover .rblx-card__icon {
+    transform: scale(1.1);
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* 3D badge overlay */
+.rblx-card__badge-3d {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 800;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    z-index: 2;
+}
+
+/* ── Card Body ── */
+
+.rblx-card__body {
+    padding: 0.5rem 0.6rem 0.55rem;
+}
+
+.rblx-card__title {
     font-weight: 700;
     font-size: 0.82rem;
     line-height: 1.3;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.25rem;
 }
 
-.catalog-card-meta {
+/* ── Stats Row ── */
+
+.rblx-card__stats {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.7rem;
+    gap: 0.65rem;
+    font-size: 0.68rem;
     color: var(--text-secondary);
+    font-weight: 600;
 }
 
-/* Player count with green dot */
-.catalog-card-players {
-    display: flex;
+.rblx-card__players {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.rblx-card__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00b06f;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px rgba(0, 176, 111, 0.5);
+    animation: rblxDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes rblxDotPulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(0, 176, 111, 0.5); }
+    50%      { opacity: 0.7; box-shadow: 0 0 8px rgba(0, 176, 111, 0.3); }
+}
+
+.rblx-card__likes {
+    display: inline-flex;
     align-items: center;
     gap: 0.2rem;
     white-space: nowrap;
 }
 
-.catalog-card-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent-primary);
+.rblx-card__like-icon {
+    width: 12px;
+    height: 12px;
     flex-shrink: 0;
+    opacity: 0.65;
 }
 
-/* Like percentage */
-.catalog-card-like {
-    display: flex;
-    align-items: center;
-    gap: 0.15rem;
-    white-space: nowrap;
+/* ── Custom Game Card Variant ── */
+
+.rblx-card--custom {
+    border: 1px solid rgba(243, 156, 18, 0.2);
 }
 
-.catalog-card-like svg {
-    width: 10px;
-    height: 10px;
+.rblx-card--custom:hover {
+    border-color: rgba(243, 156, 18, 0.4);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(243, 156, 18, 0.15);
 }
 
-/* Category badge */
-.catalog-card-badge {
-    font-size: 0.62rem;
-    font-weight: 600;
-    padding: 0.12rem 0.4rem;
-    border-radius: 4px;
-    white-space: nowrap;
-    line-height: 1.5;
-}
+/* ── Load More Section ── */
 
-/* ── Infinite Scroll Loader ── */
-
-.catalog-loader {
+.catalog-load-more {
     display: flex;
     justify-content: center;
-    padding: 1.5rem 0;
+    padding: 1.5rem 0 0.5rem;
+}
+
+.catalog-load-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.5rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.catalog-load-more-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .catalog-spinner {
-    width: 28px;
-    height: 28px;
-    border: 3px solid rgba(0, 176, 111, 0.15);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0, 176, 111, 0.2);
     border-top-color: var(--accent-primary);
     border-radius: 50%;
     animation: catalog-spin 0.7s linear infinite;
@@ -264,79 +482,215 @@
     to { transform: rotate(360deg); }
 }
 
-/* ── Responsive ── */
+/* ── Empty State ── */
 
-@media (max-width: 768px) {
-    .catalog-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 10px;
-    }
-
-    .catalog-card-info {
-        padding: 0.4rem 0.5rem;
-    }
-
-    .catalog-card-name {
-        font-size: 0.76rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .catalog-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-    }
-}
-
-/* ── Custom Game Cards ── */
-
-.catalog-card-custom {
-    border: 1px solid rgba(243, 156, 18, 0.25);
-}
-
-.catalog-card-custom:hover {
-    border-color: rgba(243, 156, 18, 0.45);
-}
-
-.catalog-card-thumb-custom {
+.catalog-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    background: var(--bg-primary);
+    padding: 4rem 1rem;
+    text-align: center;
+    gap: 0.75rem;
 }
 
-.catalog-card-custom-icon {
-    opacity: 0.7;
-    transition: opacity var(--transition-fast);
-}
-
-.catalog-card-custom:hover .catalog-card-custom-icon {
-    opacity: 1;
-}
-
-.catalog-card-custom-badge {
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.catalog-empty-icon {
+    width: 56px;
+    height: 56px;
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.06);
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
+    opacity: 0.35;
 }
 
-.catalog-card-creator {
-    display: flex;
-    align-items: center;
-    gap: 0.2rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.catalog-empty-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
 }
 
-.catalog-card-creator svg {
-    flex-shrink: 0;
-    opacity: 0.6;
+.catalog-empty-sub {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    max-width: 280px;
+}
+
+/* ══════════════════════════════════════════════
+   Responsive Breakpoints
+   ══════════════════════════════════════════════ */
+
+/* Large desktop: 5 columns (default) */
+
+/* Medium desktop / small laptop */
+@media (max-width: 1200px) {
+    .catalog-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+}
+
+/* Tablet landscape */
+@media (max-width: 1024px) {
+    .catalog-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .catalog-search-wrap {
+        max-width: 100%;
+    }
+}
+
+/* Tablet portrait */
+@media (max-width: 768px) {
+    .catalog-title {
+        font-size: 1.4rem;
+    }
+
+    .catalog-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .rblx-card__body {
+        padding: 0.4rem 0.5rem 0.45rem;
+    }
+
+    .rblx-card__title {
+        font-size: 0.76rem;
+    }
+
+    .rblx-card__stats {
+        font-size: 0.62rem;
+        gap: 0.4rem;
+    }
+
+    .rblx-card__icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .catalog-categories-wrap::after {
+        width: 32px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 540px) {
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .catalog-title {
+        font-size: 1.25rem;
+    }
+
+    .catalog-header {
+        margin-bottom: 0.65rem;
+    }
+
+    .rblx-card {
+        border-radius: 10px;
+    }
+
+    .rblx-card__thumb {
+        border-radius: 10px 10px 0 0;
+    }
+
+    .rblx-card__body {
+        padding: 0.35rem 0.45rem 0.4rem;
+    }
+
+    .rblx-card__title {
+        font-size: 0.72rem;
+    }
+
+    .rblx-card__stats {
+        font-size: 0.58rem;
+    }
+
+    .rblx-card__dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    .rblx-card__like-icon {
+        width: 10px;
+        height: 10px;
+    }
+
+    .rblx-card__icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .rblx-card__badge-3d {
+        font-size: 0.5rem;
+        padding: 1px 4px;
+    }
+
+    .catalog-pill {
+        font-size: 0.72rem;
+        padding: 0.3rem 0.65rem;
+    }
+
+    .catalog-sort-label {
+        display: none;
+    }
+}
+
+/* ══════════════════════════════════════════════
+   Light Theme Overrides
+   ══════════════════════════════════════════════ */
+
+body.light-theme .rblx-card {
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .rblx-card:hover {
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .rblx-card--custom {
+    border-color: rgba(243, 156, 18, 0.15);
+}
+
+body.light-theme .rblx-card--custom:hover {
+    border-color: rgba(243, 156, 18, 0.35);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(243, 156, 18, 0.1);
+}
+
+body.light-theme .catalog-search {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .catalog-pill {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-secondary);
+}
+
+body.light-theme .catalog-pill:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .catalog-sort {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .catalog-categories-wrap::after {
+    background: linear-gradient(to right, transparent, var(--bg-primary));
+}
+
+body.light-theme .catalog-load-more-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .catalog-load-more-btn:hover {
+    background: rgba(0, 0, 0, 0.07);
+    border-color: rgba(0, 0, 0, 0.12);
 }

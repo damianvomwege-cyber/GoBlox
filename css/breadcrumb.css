@@ -1,0 +1,68 @@
+/* ===========================
+   GoBlox - Breadcrumb Navigation
+   =========================== */
+
+.goblox-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0;
+    margin-bottom: 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    animation: breadcrumbFadeIn 0.25s ease;
+    flex-wrap: wrap;
+}
+
+@keyframes breadcrumbFadeIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.breadcrumb-segment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 4px;
+    padding: 0.15rem 0.35rem;
+    margin: -0.15rem -0.35rem;
+    transition: all var(--transition-fast);
+}
+
+.breadcrumb-segment:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.breadcrumb-segment.breadcrumb-current {
+    color: var(--text-primary);
+    cursor: default;
+    pointer-events: none;
+}
+
+.breadcrumb-separator {
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.65rem;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.breadcrumb-home-icon {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+/* Light theme */
+body.light-theme .breadcrumb-segment:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .breadcrumb-separator {
+    color: rgba(0, 0, 0, 0.2);
+}

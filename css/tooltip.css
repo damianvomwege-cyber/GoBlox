@@ -1,0 +1,77 @@
+/* ===========================
+   GoBlox - Tooltip System
+   =========================== */
+
+.goblox-tooltip {
+    position: fixed;
+    z-index: 9998;
+    padding: 0.45rem 0.75rem;
+    background: #1a1a1a;
+    color: #f5f5f5;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.goblox-tooltip.tooltip-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Arrow */
+.goblox-tooltip::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #1a1a1a;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Arrow positions */
+.goblox-tooltip.tooltip-top::after {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.goblox-tooltip.tooltip-bottom::after {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-135deg);
+}
+
+.goblox-tooltip.tooltip-left::after {
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+.goblox-tooltip.tooltip-right::after {
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%) rotate(135deg);
+}
+
+/* Light theme */
+body.light-theme .goblox-tooltip {
+    background: #2c2c2c;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.light-theme .goblox-tooltip::after {
+    background: #2c2c2c;
+    border-color: rgba(255, 255, 255, 0.1);
+}

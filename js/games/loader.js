@@ -16,6 +16,8 @@ const PHASE1_TEMPLATES = [
     () => import('./templates/maze.js'),
     () => import('./templates/breakout.js'),
     () => import('./templates/clicker.js'),
+    () => import('./templates/obby.js'),
+    () => import('./templates/tycoon.js'),
 ];
 
 // Phase 2: Remaining templates — loaded in background batches
